@@ -1,0 +1,355 @@
+#:import utils kivy.utils
+MDScreenManager:
+    AppLogin:
+    AppCriar:
+    AppCardZona:
+    AppLista:
+    AppListaNaoVerificados:
+    AppListaVerificados:
+    AppdEditVer:
+
+<AppLogin>:
+    name: 'applogin'
+    MDFloatLayout:
+        MDSpinner:
+            id: spinner
+            size_hint: None, None
+            size: dp(46), dp(46)
+            pos_hint: {'center_x': .5, 'center_y': .5}
+            active: root.estado
+        MDIcon:
+            icon: 'account-box'
+            pos_hint: {'center_x': .5, 'center_y': .8}
+            font_size: '130sp'
+        MDTextField:
+            id: matricula
+            icon_right: "shield-check"
+            hint_text: "Matricula"
+            size_hint_x: .75
+            pos_hint: {'center_x': .5, 'center_y': .6}
+            multiline: False
+            max_text_length: 20
+            mode: 'rectangle'
+            input_type: 'number'
+            input_filter: 'int'
+        MDTextField:
+            id: login
+            password: True
+            icon_right: "key-variant"
+            hint_text: "Senha"
+            size_hint_x: .75
+            pos_hint: {'center_x': .5, 'center_y': .45}
+            multiline: False
+            max_text_length: 20
+            mode: 'rectangle'
+        MDTextButton:
+            text: 'Redefinir senha.'
+            pos_hint: {'center_x': .72, 'center_y': .34}
+        MDFillRoundFlatIconButton:
+            text: 'ENTRAR'
+            icon: "login"
+            size_hint_x: .75
+            halign: 'left'
+            pos_hint: {'center_x': .5, 'center_y': .25}
+            on_release:
+                root.start_second_thread()
+        MDFillRoundFlatIconButton:
+            text: 'CRIAR'
+            icon: "plus-circle"
+            md_bg_color: utils.get_color_from_hex('#276880')
+            size_hint_x: .75
+            halign: 'left'
+            pos_hint: {'center_x': .5, 'center_y': .13}
+            on_release:
+                root.manager.transition.direction = "left"
+                root.manager.current = "appcriar"
+
+<AppCriar>:
+    name: 'appcriar'
+    MDFloatLayout:
+        MDIconButton:
+            icon: 'arrow-left-bold-circle'
+            icon_size: '45sp'
+            pos_hint: {'center_y': .9}
+            on_release:
+                root.manager.transition.direction = "right"
+                root.manager.current = "applogin"
+        MDLabel:
+            text: 'NOVO CADASTRO'
+            halign: 'center'
+            font_style: 'H6'
+            size_hint_x: .75
+            pos_hint: {'center_x': .5, 'center_y': .85}
+        MDTextField:
+            id: matricula
+            icon_right: "shield-check"
+            hint_text: "Matricula"
+            size_hint_x: .75
+            pos_hint: {'center_x': .5, 'center_y': .7}
+            multiline: False
+            max_text_length: 20
+            input_type: 'number'
+            input_filter: 'int'
+        MDTextField:
+            id: email
+            icon_right: "email"
+            hint_text: "Email"
+            size_hint_x: .75
+            pos_hint: {'center_x': .5, 'center_y': .55}
+            multiline: False
+            max_text_length: 50
+        MDTextField:
+            id: login
+            password: True
+            icon_right: "lock"
+            hint_text: "Senha"
+            size_hint_x: .75
+            pos_hint: {'center_x': .5, 'center_y': .4}
+            multiline: False
+            max_text_length: 20
+        MDDropDownItem:
+            id: drop_item
+            pos_hint: {'center_x': .5, 'center_y': .25}
+            text: 'Deposito 1'
+            on_release: app.sel_deposito()
+        MDFillRoundFlatIconButton:
+            text: 'CRIAR'
+            icon: "plus-circle"
+            size_hint_x: .75
+            halign: 'left'
+            md_bg_color: utils.get_color_from_hex('#276880')
+            pos_hint: {'center_x': .5, 'center_y': .1}
+            on_release:
+                app.criar_cadastro()
+
+
+<AppCardZona>:
+    name: 'appcardzona'
+    MDFloatLayout:
+        MDLabel:
+            id: lbl_deposito
+            theme_text_color: "Hint"
+            font_size: '22sp'
+            halign: 'right'
+            size_hint_x: .95
+            pos_hint_x: None
+            pos_hint: {'center_y': .92}
+        MDIconButton:
+            icon: 'arrow-left-bold-circle'
+            icon_size: '45sp'
+            pos_hint: {'center_y': .9}
+            on_release:
+                root.manager.transition.direction = "right"
+                root.manager.current = "applogin"
+        MDRectangleFlatIconButton:
+            id: btn_naover
+            name: 'cardnaover'
+            text: 'NAO VERIFICADOS'
+            theme_text_color: "Custom"
+            text_color: "white"
+            line_color: "white"
+            md_bg_color: utils.get_color_from_hex('#9C2780')
+            theme_icon_color: "Custom"
+            icon_color: 'white'
+            size_hint: .9, .2
+            pos_hint: {'center_x': .5, 'center_y': .6}
+            padding: 20
+            icon: 'notebook-check-outline'
+            icon_size: "64sp"
+            font_size: '20sp'
+            on_release:
+                root.manager.transition.direction = "left"
+                root.manager.current = "applistazona"
+                app.cria_lista_zona()
+        
+        MDRectangleFlatIconButton:
+            id: btn_ver
+            name: 'cardver'
+            text: '         VERIFICADOS'
+            theme_text_color: "Custom"
+            text_color: "white"
+            line_color: "white"
+            md_bg_color: utils.get_color_from_hex('#603689')
+            theme_icon_color: "Custom"
+            icon_color: 'white'
+            size_hint: .9, .2
+            pos_hint: {'center_x': .5, 'center_y': .37}
+            padding: 20
+            icon: 'notebook-check'
+            icon_size: "64sp"
+            font_size: '20sp'
+            on_release:
+                root.manager.transition.direction = "left"
+                root.manager.current = "applistazona"
+                app.cria_lista_zona(True)
+
+        MDLabel:
+            id: lbl_progess
+            halign: "center"
+            text: "100 %"
+            theme_text_color: "Hint"
+            font_size: "22sp"
+            pos_hint_x: None
+            pos_hint: {"center_y": .15}
+        MDProgressBar:
+            id: progresstotal
+            value: 50
+            pos_hint: {"center_x": .5, "center_y": .10}
+            size_hint_x: .9
+
+<AppLista>:
+    name: 'applistazona'
+    MDBoxLayout:
+        orientation: "vertical"
+        MDBoxLayout:
+            adaptive_height: True
+            MDIconButton:
+                icon: 'arrow-left'
+                theme_icon_color: "Custom"
+                on_release:
+                    root.manager.transition.direction = "right"
+                    root.manager.current = "appcardzona"
+            MDIconButton:
+                icon: 'magnify'
+                theme_icon_color: "Custom"
+            MDTextField:
+                id: search_field
+                hint_text: 'Pesquisa por zona de separacao'
+                #on_text: root.set_list_md_icons(self.text, True)
+        MDScrollView:
+            scroll_timeout : 100
+            MDList:
+                id: md_list
+                padding: 0
+
+<CustomLista>:
+    IconRightWidget:
+        icon: 'text-box-edit-outline'
+        on_release:
+            root.app_editar()
+
+
+<AppListaNaoVerificados>:
+    name: 'applistazonanaover'
+    MDBoxLayout:
+        orientation: "vertical"
+        MDBoxLayout:
+            adaptive_height: True
+            MDIconButton:
+                icon: 'arrow-left'
+                on_release:
+                    root.manager.transition.direction = "right"
+                    root.manager.current = "applistazona"
+                    app.cria_lista_zona()
+            MDIconButton:
+                icon: 'magnify'
+            MDTextField:
+                id: search_field
+                hint_text: 'Pesquisa por produto'
+
+
+        RecycleView:
+            id: rv
+            key_viewclass: 'viewclass'
+            key_size: 'height'
+
+            RecycleBoxLayout:
+                padding: 0
+                default_size: None, dp(80)
+                default_size_hint: 1, None
+                size_hint_y: None
+                height: self.minimum_height
+                orientation: 'vertical'
+
+
+<AppListaVerificados>:
+    name: 'applistazonaver'
+    MDBoxLayout:
+        orientation: "vertical"
+        MDBoxLayout:
+            adaptive_height: True
+            MDIconButton:
+                icon: 'arrow-left'
+                on_release:
+                    root.manager.transition.direction = "right"
+                    root.manager.current = "applistazona"
+                    app.cria_lista_zona(True)
+            MDIconButton:
+                icon: 'magnify'
+            MDTextField:
+                id: search_field
+                hint_text: 'Pesquisa por produto'
+
+        RecycleView:
+            id: rv
+            key_viewclass: 'viewclass'
+            key_size: 'height'
+
+            RecycleBoxLayout:
+                padding: 0
+                default_size: None, dp(80)
+                default_size_hint: 1, None
+                size_hint_y: None
+                height: self.minimum_height
+                orientation: 'vertical'
+
+<AppdEditVer>:
+    name: 'appdeditver'
+    MDFloatLayout:
+        MDIconButton:
+            icon: 'arrow-left-bold-circle'
+            icon_size: '45sp'
+            pos_hint: {'center_y': .9}
+            on_release:
+                root.manager.transition.direction = "right"
+                root.manager.current = app.app_atual
+        MDLabel:
+            id: id_prod
+            halign: 'center'
+            font_size: '22sp'
+            bold: True
+            pos_hint: {'center_x': .5, 'center_y': .8}
+
+        MDLabel:
+            id: endereco
+            halign: 'center'
+            font_size: '22sp'
+            bold: True
+            pos_hint: {'center_x': .5, 'center_y': .75}
+        MDLabel:
+            id: nome
+            halign: 'center'
+            font_size: '22sp'
+            bold: True
+            pos_hint: {'center_x': .5, 'center_y': .7}
+        MDTextField:
+            id: quantidade
+            hint_text: "quantidade"
+            size_hint_x: .75
+            pos_hint: {'center_x': .5, 'center_y': .55}
+            multiline: False
+            max_text_length: 10
+            input_type: 'number'
+            input_filter: 'int'
+
+        MDIconButton:
+            icon: 'calendar'
+            icon_size: '45sp'
+            pos_hint: {'center_x': .5, 'center_y': .35}
+            on_release: app.show_data()
+
+        MDTextField:
+            id: validade
+            hint_text: "validade"
+            size_hint_x: .75
+            pos_hint: {'center_x': .5, 'center_y': .45}
+            multiline: False
+        
+        MDFillRoundFlatIconButton:
+            id: btneditar
+            text: 'SALVAR'
+            icon: "login"
+            size_hint_x: .75
+            halign: 'left'
+            pos_hint: {'center_x': .5, 'center_y': .25}
+            on_release: app.atualizar()

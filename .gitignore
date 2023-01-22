@@ -1,0 +1,7 @@
+.buildozer
+bin
+buildozer.spec
+*.db
+__pycache__
+*.json
+config.py
