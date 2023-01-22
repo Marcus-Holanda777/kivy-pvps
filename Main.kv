@@ -215,7 +215,7 @@ MDScreenManager:
             MDTextField:
                 id: search_field
                 hint_text: 'Pesquisa por zona de separacao'
-                #on_text: root.set_list_md_icons(self.text, True)
+                # on_text: root.filtra_zona(root.zona, root.tipo, self.text, True)
         MDScrollView:
             scroll_timeout : 100
             MDList:
@@ -246,6 +246,7 @@ MDScreenManager:
             MDTextField:
                 id: search_field
                 hint_text: 'Pesquisa por produto'
+                on_text: app.filtra_zona(app.zona, app.tipo, self.text, True)
 
 
         RecycleView:
@@ -279,6 +280,7 @@ MDScreenManager:
             MDTextField:
                 id: search_field
                 hint_text: 'Pesquisa por produto'
+                on_text: app.filtra_zona(app.zona, app.tipo, self.text, True)
 
         RecycleView:
             id: rv

@@ -313,15 +313,26 @@ class MainApp(MDApp):
         self.root.current_screen.ids.progresstotal.value = (
             self.verificado / total) * 100
 
-    def filtra_zona(self, zona, tipo):
+    def filtra_zona(self, zona, tipo, pesquisa="", search=False):
+        self.pesquisa = pesquisa
+        self.search = search
         self.root.current_screen.ids.rv.data = []
 
         # TODO: Retorna dados por Zona
-        rst = (
-            db.query(Produto)
-            .filter(and_(Produto.zona == zona, Produto.tipos == tipo,
-                         Produto.verificado == self.flag_ver))
-        ).all()
+        if search:
+            rst = (
+                db.query(Produto)
+                .filter(and_(Produto.zona == zona, Produto.tipos == tipo,
+                             Produto.verificado == self.flag_ver,
+                             Produto.descricao.like(f"%{pesquisa}%")))
+            ).all()
+
+        else:
+            rst = (
+                db.query(Produto)
+                .filter(and_(Produto.zona == zona, Produto.tipos == tipo,
+                             Produto.verificado == self.flag_ver))
+            ).all()
 
         for row in rst:
             dados = {
@@ -337,7 +348,7 @@ class MainApp(MDApp):
 
             self.root.current_screen.ids.rv.data.append(dados)
 
-    def altera_screen(self, zona, tipo):
+    def altera_screen(self, zona, tipo, pesquisa="", search=False):
         tipo = tipo.split('-')[0].strip()
 
         if self.flag_ver:
@@ -347,7 +358,7 @@ class MainApp(MDApp):
 
         self.root.current_screen.manager.transition.direction = 'left'
         self.root.current = self.app_atual
-        self.filtra_zona(zona, tipo)
+        self.filtra_zona(zona, tipo, pesquisa, search)
 
     def cria_lista_zona(self, flag_ver=False):
         self.flag_ver = flag_ver
@@ -463,7 +474,8 @@ class MainApp(MDApp):
                 screen.ids.quantidade.text = ''
                 screen.ids.validade.text = ''
 
-                self.altera_screen(self.zona, self.tipo)
+                self.altera_screen(self.zona, self.tipo,
+                                   self.pesquisa, self.search)
 
         else:
             texto = msg_erro
