@@ -39,18 +39,26 @@ class CustomLista(ThreeLineRightIconListItem):
     tertiary_text = StringProperty()
 
     def app_editar(self):
-        MDApp.get_running_app().root.current_screen.manager.transition.direction = 'left'
-        MDApp.get_running_app().root.current = 'appdeditver'
+        app = MDApp.get_running_app()
+        app.root.current_screen.manager.transition.direction = 'left'
+        app.root.current = 'appdeditver'
 
-        screen = MDApp.get_running_app().root.current_screen
+        screen = app.root.current_screen
 
         id = int(self.text.split(':')[1].strip())
-        prod: Produto = db.query(Produto).filter(
-            Produto.produto_id == id).scalar()
+        prod = db.query(Produto).filter(Produto.produto_id == id).scalar()
 
         screen.ids.id_prod.text = f'ID: {str(prod.produto_id)}'
         screen.ids.endereco.text = prod.endereco
         screen.ids.nome.text = prod.descricao
+
+        if app.app_atual == 'applistazonaver':
+            screen.ids.quantidade.text = str(prod.quantidade)
+            screen.ids.validade.text = parse(
+                prod.vencimento).strftime("%d/%m/%Y")
+        else:
+            screen.ids.quantidade.text = ''
+            screen.ids.validade.text = ''
 
 
 class AppdEditVer(MDScreen):
@@ -412,7 +420,7 @@ class MainApp(MDApp):
         ano_atual = datetime.now().year
 
         data = MDDatePicker(title="VENC", title_input='VENC',
-                            min_year=ano_atual - 4, max_year=ano_atual + 4)
+                            min_year=ano_atual, max_year=ano_atual + 6)
         data.bind(on_save=self.on_save, on_cancel=self.on_cancel)
         data.open()
 
@@ -440,10 +448,20 @@ class MainApp(MDApp):
                 ).first()
 
                 # TODO -> VERIFICAR ESTOQUE NA HORA DE INSERIR NA BASE
-                inseridos = (
-                    db.query(func.sum(Produto.quantidade))
-                    .filter(Produto.codigo == prod.codigo)
-                ).scalar() + int(qtd)
+                if self.app_atual == 'applistazonanaover':
+
+                    inseridos = (
+                        db.query(func.sum(Produto.quantidade))
+                        .filter(Produto.codigo == prod.codigo)
+                    ).scalar() + int(qtd)
+
+                else:
+                    inseridos = (
+                        db.query(func.sum(Produto.quantidade))
+                        .filter(Produto.codigo == prod.codigo)
+                    ).scalar() - prod.quantidade
+
+                    inseridos += int(qtd)
 
                 if inseridos > prod.estoque:
                     msg_erro = f"Qtd inserida {inseridos} > {prod.estoque}"
