@@ -1,6 +1,6 @@
 from kivy.lang import Builder
 from kivy.core.window import Window
-from kivy.properties import StringProperty, BooleanProperty
+from kivy.properties import StringProperty, BooleanProperty, ObjectProperty
 from kivy.metrics import dp
 from kivy.utils import get_color_from_hex
 from kivy.clock import mainthread
@@ -30,7 +30,7 @@ from models.controle import db as dbb
 from models.autenticar import criar_conta, autenticar_conta
 
 
-# Window.size = (360, 548)  # config TELA
+Window.size = (360, 548)  # config TELA
 
 
 class CustomLista(ThreeLineRightIconListItem):
@@ -51,6 +51,7 @@ class CustomLista(ThreeLineRightIconListItem):
         screen.ids.id_prod.text = f'ID: {str(prod.produto_id)}'
         screen.ids.endereco.text = prod.endereco
         screen.ids.nome.text = prod.descricao
+        screen.ids.emb.text = "1"
 
         if app.app_atual == 'applistazonaver':
             screen.ids.quantidade.text = str(prod.quantidade)
@@ -62,8 +63,24 @@ class CustomLista(ThreeLineRightIconListItem):
 
 
 class AppdEditVer(MDScreen):
+    max_length = 7
+
     def on_pre_enter(self, *args):
         Window.bind(on_keyboard=self.hook_keyboard)
+
+    def calcula_total(self):
+
+        if self.ids.quantidade.text.strip() == "" or len(self.ids.quantidade.text) > self.max_length:
+            self.ids.total.text = "0"
+        elif self.ids.emb.text == "" or self.ids.emb.text == "0":
+            self.ids.total.text = "0"
+        else:
+            self.ids.total.text = (
+                str(
+                    int(self.ids.quantidade.text) *
+                    int(self.ids.emb.text)
+                )
+            )
 
     def hook_keyboard(self, window, key, *args):
         app = MDApp.get_running_app()
@@ -140,13 +157,18 @@ class AppListaVerificados(MDScreen):
 
 
 class AppLogin(MDScreen):
+    txt_matricula = ObjectProperty(None)
+    txt_login = ObjectProperty(None)
+    icon_login = ObjectProperty(None)
 
     estado = BooleanProperty(False)
     deposito = None
 
     def on_leave(self, *args):
-        self.ids.matricula.text = ''
-        self.ids.login.text = ''
+        self.txt_matricula.text = ''
+        self.txt_login.text = ''
+        self.txt_login.password = True
+        self.icon_login.icon = 'eye-off'
 
     def start_second_thread(self):
         t = Thread(target=self.autenticar)
@@ -192,10 +214,17 @@ class AppLogin(MDScreen):
 
 
 class AppCriar(MDScreen):
+    txt_matricula = ObjectProperty(None)
+    txt_email = ObjectProperty(None)
+    txt_login = ObjectProperty(None)
+    icon_login = ObjectProperty(None)
+
     def on_leave(self, *args):
-        self.ids.matricula.text = ''
-        self.ids.login.text = ''
-        self.ids.email.text = ''
+        self.txt_matricula.text = ''
+        self.txt_email.text = ''
+        self.txt_login.text = ''
+        self.txt_login.password = True
+        self.icon_login.icon = 'eye-off'
 
     def on_pre_enter(self, *args):
         Window.bind(on_keyboard=self.hook_keyboard)
@@ -221,6 +250,7 @@ screen_manager.add_widget(AppdEditVer(name='appdeditver'))
 
 
 class MainApp(MDApp):
+
     def build(self):
         self.deposito = None
         self.theme_cls.theme_style = "Dark"

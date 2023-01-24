@@ -10,6 +10,9 @@ MDScreenManager:
 
 <AppLogin>:
     name: 'applogin'
+    txt_login: login
+    txt_matricula: matricula
+    icon_login: eye
     MDFloatLayout:
         MDSpinner:
             id: spinner
@@ -29,19 +32,29 @@ MDScreenManager:
             pos_hint: {'center_x': .5, 'center_y': .6}
             multiline: False
             max_text_length: 20
-            mode: 'rectangle'
             input_type: 'number'
             input_filter: 'int'
-        MDTextField:
-            id: login
-            password: True
-            icon_right: "key-variant"
-            hint_text: "Senha"
+        MDRelativeLayout:
             size_hint_x: .75
-            pos_hint: {'center_x': .5, 'center_y': .45}
-            multiline: False
-            max_text_length: 20
-            mode: 'rectangle'
+            pos_hint: {"center_x": .5, "center_y": .45}
+            MDTextField:
+                id: login
+                password: True
+                icon_left: "key-variant"
+                hint_text: "Senha"
+                pos_hint: {'center_y': .5}
+                multiline: False
+                max_text_length: 20
+            MDIconButton:
+                id: eye
+                icon: "eye-off"
+                pos_hint: {"center_y": .5}
+                pos: login.width - self.width + dp(4), 0
+                theme_text_color: "Hint"
+                on_release:
+                    self.icon = "eye" if self.icon == "eye-off" else "eye-off"
+                    login.password = False if login.password is True else True
+
         MDTextButton:
             text: 'Redefinir senha.'
             pos_hint: {'center_x': .72, 'center_y': .34}
@@ -66,6 +79,11 @@ MDScreenManager:
 
 <AppCriar>:
     name: 'appcriar'
+    txt_login: login
+    txt_matricula: matricula
+    txt_email: email
+    icon_login: eye
+
     MDFloatLayout:
         MDIconButton:
             icon: 'arrow-left-bold-circle'
@@ -98,15 +116,26 @@ MDScreenManager:
             pos_hint: {'center_x': .5, 'center_y': .55}
             multiline: False
             max_text_length: 50
-        MDTextField:
-            id: login
-            password: True
-            icon_right: "lock"
-            hint_text: "Senha"
+        MDRelativeLayout:
             size_hint_x: .75
-            pos_hint: {'center_x': .5, 'center_y': .4}
-            multiline: False
-            max_text_length: 20
+            pos_hint: {"center_x": .5, "center_y": .4}
+            MDTextField:
+                id: login
+                password: True
+                icon_left: "key-variant"
+                hint_text: "Senha"
+                pos_hint: {'center_y': .5}
+                multiline: False
+                max_text_length: 20
+            MDIconButton:
+                id: eye
+                icon: "eye-off"
+                pos_hint: {"center_y": .5}
+                pos: login.width - self.width + dp(4), 0
+                theme_text_color: "Hint"
+                on_release:
+                    self.icon = "eye" if self.icon == "eye-off" else "eye-off"
+                    login.password = False if login.password is True else True
         MDDropDownItem:
             id: drop_item
             pos_hint: {'center_x': .5, 'center_y': .25}
@@ -305,53 +334,81 @@ MDScreenManager:
             on_release:
                 root.manager.transition.direction = "right"
                 root.manager.current = app.app_atual
+                
         MDLabel:
             id: id_prod
             halign: 'center'
             font_size: '22sp'
             bold: True
-            pos_hint: {'center_x': .5, 'center_y': .8}
-
+            pos_hint: {'center_x': .5, 'center_y': .9}
         MDLabel:
             id: endereco
             halign: 'center'
             font_size: '22sp'
             bold: True
-            pos_hint: {'center_x': .5, 'center_y': .75}
+            pos_hint: {'center_x': .5, 'center_y': .85}
         MDLabel:
             id: nome
             halign: 'center'
             font_size: '22sp'
             bold: True
-            pos_hint: {'center_x': .5, 'center_y': .7}
+            pos_hint: {'center_x': .5, 'center_y': .8}
         MDTextField:
             id: quantidade
             hint_text: "quantidade"
             size_hint_x: .75
-            pos_hint: {'center_x': .5, 'center_y': .55}
+            pos_hint: {'center_x': .5, 'center_y': .65}
             multiline: False
-            max_text_length: 10
             input_type: 'number'
             input_filter: 'int'
-
-        MDIconButton:
-            icon: 'calendar'
-            icon_size: '45sp'
-            pos_hint: {'center_x': .5, 'center_y': .35}
-            on_release: app.show_data()
-
+            on_text: 
+                root.calcula_total()
         MDTextField:
-            id: validade
-            hint_text: "validade"
+            id: emb
+            hint_text: "embalagem"
+            text: "1"
             size_hint_x: .75
-            pos_hint: {'center_x': .5, 'center_y': .45}
+            pos_hint: {"center_x": .5, "center_y": .55}
             multiline: False
-        
+            input_type: 'number'
+            input_filter: 'int'
+            on_text:
+                root.calcula_total()
+        MDLabel:
+            text: "TOTAL"
+            halign: "center"
+            font_size: '20sp'
+            pos_hint: {"center_x": .5, "center_y": .45}
+        MDLabel:
+            id: total
+            halign: "center"
+            text: "0"
+            font_size: '22sp'
+            size_hint_x: .75
+            pos_hint: {"center_x": .5, "center_y": .4}
+        MDRelativeLayout:
+            size_hint_x: None
+            height: validade.height
+            size_hint_x: .75
+            pos_hint: {"center_x": .5, "center_y": .4}
+            MDTextField:
+                id: validade
+                hint_text: "validade"
+                pos_hint: {"center_y": .44}
+                multiline: False
+            MDIconButton:
+                icon: 'calendar'
+                pos_hint: {"center_y": .44}
+                pos: validade.width - self.width + dp(8), 0
+                on_release: app.show_data()
+            
+      
+
         MDFillRoundFlatIconButton:
             id: btneditar
             text: 'SALVAR'
             icon: "login"
             size_hint_x: .75
             halign: 'left'
-            pos_hint: {'center_x': .5, 'center_y': .25}
+            pos_hint: {'center_x': .5, 'center_y': .15}
             on_release: app.atualizar()
