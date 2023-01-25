@@ -251,6 +251,46 @@ MDScreenManager:
                 id: md_list
                 padding: 0
 
+<TextDate>:
+    multiline: False
+    hint_text: "Validade"
+
+
+<BtnAdicionar>:
+    id: btn_add
+    text: 'ADD'
+    icon: "login"
+    size_hint_x: .75
+    halign: 'left'
+    pos_hint: {'center_x': .5, 'center_y': .25}
+    md_bg_color: utils.get_color_from_hex('#276880')
+
+
+<BtnEditar>:
+    id: btneditar
+    text: 'SALVAR'
+    icon: "login"
+    size_hint_x: .75
+    halign: 'left'
+    pos_hint: {'center_x': .5, 'center_y': .15}
+
+
+<Content>:
+    orientation: "vertical"
+    spacing: "12dp"
+    size_hint_y: None
+    height: "120dp"
+
+    MDTextField:
+        id: quantidade
+        hint_text: "Quantidade"
+        multiline: False
+        input_type: 'number'
+        input_filter: 'int'
+    TextDate:
+        id: validade
+
+
 <CustomLista>:
     IconRightWidget:
         icon: 'text-box-edit-outline'
@@ -327,6 +367,7 @@ MDScreenManager:
 <AppdEditVer>:
     name: 'appdeditver'
     MDFloatLayout:
+        id: layout
         MDIconButton:
             icon: 'arrow-left-bold-circle'
             icon_size: '45sp'
@@ -357,7 +398,7 @@ MDScreenManager:
             id: quantidade
             hint_text: "quantidade"
             size_hint_x: .75
-            pos_hint: {'center_x': .5, 'center_y': .65}
+            pos_hint: {'center_x': .5, 'center_y': .7}
             multiline: False
             input_type: 'number'
             input_filter: 'int'
@@ -368,7 +409,7 @@ MDScreenManager:
             hint_text: "embalagem"
             text: "1"
             size_hint_x: .75
-            pos_hint: {"center_x": .5, "center_y": .55}
+            pos_hint: {"center_x": .5, "center_y": .6}
             multiline: False
             input_type: 'number'
             input_filter: 'int'
@@ -378,37 +419,24 @@ MDScreenManager:
             text: "TOTAL"
             halign: "center"
             font_size: '20sp'
-            pos_hint: {"center_x": .5, "center_y": .45}
+            pos_hint: {"center_x": .5, "center_y": .5}
         MDLabel:
             id: total
             halign: "center"
             text: "0"
             font_size: '22sp'
             size_hint_x: .75
-            pos_hint: {"center_x": .5, "center_y": .4}
+            pos_hint: {"center_x": .5, "center_y": .45}
         MDRelativeLayout:
             size_hint_x: None
             height: validade.height
             size_hint_x: .75
             pos_hint: {"center_x": .5, "center_y": .4}
-            MDTextField:
+            TextDate:
                 id: validade
-                hint_text: "validade"
-                pos_hint: {"center_y": .44}
-                multiline: False
+                pos_hint: {"center_y": .5}
             MDIconButton:
                 icon: 'calendar'
-                pos_hint: {"center_y": .44}
+                pos_hint: {"center_y": .5}
                 pos: validade.width - self.width + dp(8), 0
                 on_release: app.show_data()
-            
-      
-
-        MDFillRoundFlatIconButton:
-            id: btneditar
-            text: 'SALVAR'
-            icon: "login"
-            size_hint_x: .75
-            halign: 'left'
-            pos_hint: {'center_x': .5, 'center_y': .15}
-            on_release: app.atualizar()

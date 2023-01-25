@@ -14,23 +14,25 @@ from kivymd.uix.list import (TwoLineIconListItem, IconLeftWidget,
 
 from kivymd.uix.snackbar import Snackbar
 from kivymd.uix.dialog import MDDialog
-from kivymd.uix.button import MDFlatButton
+from kivymd.uix.button import MDFlatButton, MDFillRoundFlatIconButton
 from kivymd.uix.menu import MDDropdownMenu
+from kivymd.uix.boxlayout import MDBoxLayout
+from kivymd.uix.textfield import MDTextField
 
-from modelos import db, Produto, func, and_
+from modelos import db, Produto, func, and_, _asdict
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
 from datetime import datetime
 from threading import Thread
 from time import sleep
+import re
 
 from uteis.utils import is_connect, is_data
 
 from models.controle import db as dbb
 from models.autenticar import criar_conta, autenticar_conta
 
-
-Window.size = (360, 548)  # config TELA
+# Window.size = (360, 548)  # config TELA
 
 
 class CustomLista(ThreeLineRightIconListItem):
@@ -62,11 +64,186 @@ class CustomLista(ThreeLineRightIconListItem):
             screen.ids.validade.text = ''
 
 
+class TextDate(MDTextField):
+    pat = re.compile(r'(\d{2})(\d{4})')
+
+    def insert_text(self, substring, from_undo=False):
+        if not substring.isnumeric():
+            substring = ""
+
+        s = self.text + substring
+
+        if len(s) == 6:
+            self.text = (
+                parse(self.pat.sub(r"01/\1/\2", s), dayfirst=True) +
+                relativedelta(day=31)
+            ).strftime("%d/%m/%Y")
+
+            self.do_cursor_movement("cursor_end")
+            substring = ""
+        elif len(s) > 10:
+            self.text = s[:10]
+            substring = ""
+
+        return super().insert_text(substring, from_undo)
+
+
+class BtnEditar(MDFillRoundFlatIconButton):
+    ...
+
+
+class BtnAdicionar(MDFillRoundFlatIconButton):
+    ...
+
+
+class Content(MDBoxLayout):
+    def add_new_validade(self, id):
+        self.app = MDApp.get_running_app()
+
+        text_error = "ERRO"
+        bg_color_error = get_color_from_hex('#E91E63')
+        text_ok = "SALVO"
+        bg_color_ok = get_color_from_hex('#276880')
+
+        self.snack = Snackbar(
+            snackbar_x="10dp",
+            snackbar_y="10dp",
+            size_hint_x=(
+                Window.width - (dp(10) * 2)
+            ) / Window.width
+        )
+
+        is_campo = all(
+            [
+                self.ids.quantidade.text != "",
+                self.ids.validade.text != ""
+            ]
+        )
+
+        if is_campo and is_connect() and is_data(self.ids.validade.text):
+            idd = int(id.split(":")[1].strip())
+            prod = (
+                db.query(Produto)
+                .filter(Produto.produto_id == idd)
+            ).first()
+
+            # TODO -> Verificar se data ja existe
+            is_val = db.query(Produto).filter(
+                and_(Produto.codigo == prod.codigo,
+                     Produto.vencimento == self.ids.validade.text)
+            ).scalar()
+
+            if not is_val:
+                inseridos = (
+                    db.query(func.sum(Produto.quantidade))
+                    .filter(Produto.codigo == prod.codigo)
+                ).scalar() + int(self.ids.quantidade.text)
+
+                if inseridos <= prod.estoque:
+
+                    new_prod = Produto()
+                    new_prod.codigo = prod.codigo
+                    new_prod.endereco = prod.endereco
+                    new_prod.descricao = prod.descricao
+                    new_prod.estoque = prod.estoque
+                    new_prod.quantidade = int(self.ids.quantidade.text)
+                    new_prod.tipos = prod.tipos
+                    new_prod.vencimento = parse(
+                        self.ids.validade.text, dayfirst=True).strftime('%d/%m/%Y')
+                    new_prod.verificado = True
+                    new_prod.zona = prod.zona
+
+                    dados = _asdict(new_prod)
+
+                    # TODO -> Gravar os dados
+                    db.add(new_prod)
+                    db.commit()
+
+                    # TODO -> Gravar no banco online
+                    dbb.child("pvps").child(self.app.deposito).child(
+                        self.app.total).update(dados)
+
+                    self.app.total += 1
+
+                    self.ids.quantidade.text = ""
+                    self.ids.validade.text = ""
+
+                    self.snack.text = text_ok
+                    self.snack.bg_color = bg_color_ok
+                    self.snack.open()
+                else:
+                    self.snack.text = f"Qtd inserida {inseridos} > {prod.estoque}"
+                    self.snack.bg_color = bg_color_error
+                    self.snack.open()
+
+            else:
+                self.snack.text = "VALIDADE JA EXISTE"
+                self.snack.bg_color = bg_color_error
+                self.snack.open()
+
+        else:
+            self.snack.text = text_error
+            self.snack.bg_color = bg_color_error
+            self.snack.open()
+
+
 class AppdEditVer(MDScreen):
     max_length = 7
 
     def on_pre_enter(self, *args):
         Window.bind(on_keyboard=self.hook_keyboard)
+        self.add_btn_edit()
+
+    def add_btn_novo(self, *args):
+        self.btn = BtnAdicionar()
+        self.ids.layout.add_widget(self.btn)
+        self.btn.bind(on_release=self.add_validade)
+
+        try:
+            self.ids.layout.remove_widget(self.btn_edit)
+        except AttributeError:
+            pass
+
+    def add_btn_edit(self, *args):
+        self.app = MDApp.get_running_app()
+
+        self.btn_edit = BtnEditar()
+        self.ids.layout.add_widget(self.btn_edit)
+        self.btn_edit.bind(on_release=self.app.atualizar)
+
+        try:
+            self.ids.layout.remove_widget(self.btn)
+        except AttributeError:
+            pass
+
+    def remove_btn_edit(self, *args):
+        try:
+            self.ids.layout.remove_widget(self.btn_edit)
+        except Exception:
+            pass
+
+    def add_validade(self, *args):
+        self.dialog = MDDialog(
+            title="ADD VALIDADE:",
+            type="custom",
+            content_cls=Content(),
+            buttons=[
+                MDFlatButton(
+                    text="CANCEL",
+                    theme_text_color="Custom",
+                    on_press=lambda x: self.dialog.dismiss()
+                ),
+                MDFlatButton(
+                    text="OK",
+                    theme_text_color="Custom",
+                    on_press=lambda x: self.dialog.content_cls.add_new_validade(
+                        self.ids.id_prod.text
+                    )
+                ),
+            ],
+        )
+
+        self.dialog.open()
 
     def calcula_total(self):
 
@@ -83,15 +260,21 @@ class AppdEditVer(MDScreen):
             )
 
     def hook_keyboard(self, window, key, *args):
-        app = MDApp.get_running_app()
+        self.app = MDApp.get_running_app()
 
         if key == 27:
-            app.root.current_screen.manager.transition.direction = 'right'
-            app.root.current = app.app_atual
+            self.app.altera_screen(
+                self.app.zona, self.app.tipo, self.app.pesquisa, self.app.search, "right")
+
             return True
 
     def on_pre_leave(self, *args):
+        self.app = MDApp.get_running_app()
+        self.app.altera_screen(
+            self.app.zona, self.app.tipo, self.app.pesquisa, self.app.search, "right")
+
         Window.unbind(on_keyboard=self.hook_keyboard)
+        self.remove_btn_edit()
 
 
 class AppCardZona(MDScreen):
@@ -343,13 +526,13 @@ class MainApp(MDApp):
             self.mensagem()
 
     def total_verificado(self):
-        total = db.query(Produto).count()
+        self.total = db.query(Produto).count()
 
-        self.ver_precentual = round((self.verificado / total) * 100, 2)
+        self.ver_precentual = round((self.verificado / self.total) * 100, 2)
         self.root.current_screen.ids.lbl_progess.text = f"{self.ver_precentual} %"
 
         self.root.current_screen.ids.progresstotal.value = (
-            self.verificado / total) * 100
+            self.verificado / self.total) * 100
 
     def filtra_zona(self, zona, tipo, pesquisa="", search=False):
         self.pesquisa = pesquisa
@@ -386,7 +569,7 @@ class MainApp(MDApp):
 
             self.root.current_screen.ids.rv.data.append(dados)
 
-    def altera_screen(self, zona, tipo, pesquisa="", search=False):
+    def altera_screen(self, zona, tipo, pesquisa="", search=False, lado='left'):
         tipo = tipo.split('-')[0].strip()
 
         if self.flag_ver:
@@ -394,7 +577,7 @@ class MainApp(MDApp):
         else:
             self.app_atual = 'applistazonanaover'
 
-        self.root.current_screen.manager.transition.direction = 'left'
+        self.root.current_screen.manager.transition.direction = lado
         self.root.current = self.app_atual
         self.filtra_zona(zona, tipo, pesquisa, search)
 
@@ -454,7 +637,7 @@ class MainApp(MDApp):
         data.bind(on_save=self.on_save, on_cancel=self.on_cancel)
         data.open()
 
-    def atualizar(self):
+    def atualizar(self, *args):
         screen = self.root.current_screen
 
         id = int(screen.ids.id_prod.text.split(':')[1].strip())
@@ -472,7 +655,7 @@ class MainApp(MDApp):
 
                 datetime.strptime(validade, "%d/%m/%Y")
 
-                prod: Produto = (
+                prod = (
                     db.query(Produto)
                     .filter(Produto.produto_id == id)
                 ).first()
@@ -484,6 +667,16 @@ class MainApp(MDApp):
                         db.query(func.sum(Produto.quantidade))
                         .filter(Produto.codigo == prod.codigo)
                     ).scalar() + int(qtd)
+
+                    # TODO -> Verificar se data ja existe
+                    is_val = db.query(Produto).filter(
+                        and_(Produto.codigo == prod.codigo,
+                             Produto.vencimento == validade)
+                    ).scalar()
+
+                    if is_val:
+                        msg_erro = "VALIDADE JA EXISTE"
+                        raise ValueError
 
                 else:
                     inseridos = (
@@ -518,12 +711,11 @@ class MainApp(MDApp):
                 texto = 'SALVO'
                 cor = get_color_from_hex('#276880')
 
-                # REINICIAR CAMPOS
-                screen.ids.quantidade.text = ''
-                screen.ids.validade.text = ''
-
-                self.altera_screen(self.zona, self.tipo,
-                                   self.pesquisa, self.search)
+                if self.app_atual == 'applistazonanaover':
+                    # REINICIAR CAMPOS
+                    screen.ids.quantidade.text = ''
+                    screen.ids.validade.text = ''
+                    screen.add_btn_novo()
 
         else:
             texto = msg_erro

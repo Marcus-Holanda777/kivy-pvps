@@ -8,11 +8,13 @@ Base = declarative_base()
 engine = create_engine('sqlite:///Produtos.db')
 
 
-@as_declarative()
-class Base:
-    def _asdict(self):
-        return {c.key: getattr(self, c.key)
-                for c in inspect(self).mapper.column_attrs}
+def _asdict(obj):
+    dados = {c.key: getattr(obj, c.key)
+             for c in inspect(obj).mapper.column_attrs}
+    dados.pop('produto_id')
+    dados['tipos'] = obj.tipos.name
+
+    return dados
 
 
 Session = sessionmaker(bind=engine)
