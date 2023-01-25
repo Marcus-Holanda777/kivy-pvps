@@ -3,7 +3,7 @@ from kivy.core.window import Window
 from kivy.properties import StringProperty, BooleanProperty, ObjectProperty
 from kivy.metrics import dp
 from kivy.utils import get_color_from_hex
-from kivy.clock import mainthread
+from kivy.clock import mainthread, Clock
 
 from kivymd.app import MDApp
 from kivymd.uix.screenmanager import MDScreenManager
@@ -130,7 +130,8 @@ class Content(MDBoxLayout):
             # TODO -> Verificar se data ja existe
             is_val = db.query(Produto).filter(
                 and_(Produto.codigo == prod.codigo,
-                     Produto.vencimento == self.ids.validade.text)
+                     Produto.vencimento == self.ids.validade.text,
+                     Produto.endereco == prod.endereco)
             ).scalar()
 
             if not is_val:
@@ -192,6 +193,9 @@ class AppdEditVer(MDScreen):
 
     def on_pre_enter(self, *args):
         Window.bind(on_keyboard=self.hook_keyboard)
+        self.ids.quantidade.disabled = False
+        self.ids.emb.disabled = False
+        self.ids.validade.disabled = False
         self.add_btn_edit()
 
     def add_btn_novo(self, *args):
@@ -269,12 +273,11 @@ class AppdEditVer(MDScreen):
             return True
 
     def on_pre_leave(self, *args):
+        Window.unbind(on_keyboard=self.hook_keyboard)
+        self.remove_btn_edit()
         self.app = MDApp.get_running_app()
         self.app.altera_screen(
             self.app.zona, self.app.tipo, self.app.pesquisa, self.app.search, "right")
-
-        Window.unbind(on_keyboard=self.hook_keyboard)
-        self.remove_btn_edit()
 
 
 class AppCardZona(MDScreen):
@@ -581,7 +584,7 @@ class MainApp(MDApp):
         self.root.current = self.app_atual
         self.filtra_zona(zona, tipo, pesquisa, search)
 
-    def cria_lista_zona(self, flag_ver=False):
+    def cria_lista_zona(self, flag_ver=False, search=False, search_zona=""):
         self.flag_ver = flag_ver
 
         # limpando a lista
@@ -591,11 +594,28 @@ class MainApp(MDApp):
         def icones(x): return 'pill-multiple' if x.value == 0 else 'pill-off'
 
         # TODO: Retorna dados por Zona
-        rst = (
-            db.query(Produto.zona, Produto.tipos, func.Count().label('total'))
-            .filter(Produto.verificado == flag_ver)
-            .group_by(Produto.zona, Produto.tipos)
-        ).all()
+        if search:
+
+            rst = (
+                db.query(Produto.zona, Produto.tipos,
+                         func.Count().label('total'))
+                .filter(
+                    and_(
+                        Produto.verificado == flag_ver,
+                        Produto.zona.like(f'%{search_zona}%')
+                    )
+                )
+                .group_by(Produto.zona, Produto.tipos)
+            ).all()
+
+        else:
+
+            rst = (
+                db.query(Produto.zona, Produto.tipos,
+                         func.Count().label('total'))
+                .filter(Produto.verificado == flag_ver)
+                .group_by(Produto.zona, Produto.tipos)
+            ).all()
 
         for row in rst:
             it = TwoLineIconListItem(
@@ -660,6 +680,13 @@ class MainApp(MDApp):
                     .filter(Produto.produto_id == id)
                 ).first()
 
+                # TODO -> Verificar se data ja existe
+                is_val = db.query(Produto).filter(
+                    and_(Produto.codigo == prod.codigo,
+                         Produto.vencimento == validade,
+                         Produto.endereco == prod.endereco)
+                ).scalar()
+
                 # TODO -> VERIFICAR ESTOQUE NA HORA DE INSERIR NA BASE
                 if self.app_atual == 'applistazonanaover':
 
@@ -667,12 +694,6 @@ class MainApp(MDApp):
                         db.query(func.sum(Produto.quantidade))
                         .filter(Produto.codigo == prod.codigo)
                     ).scalar() + int(qtd)
-
-                    # TODO -> Verificar se data ja existe
-                    is_val = db.query(Produto).filter(
-                        and_(Produto.codigo == prod.codigo,
-                             Produto.vencimento == validade)
-                    ).scalar()
 
                     if is_val:
                         msg_erro = "VALIDADE JA EXISTE"
@@ -686,12 +707,24 @@ class MainApp(MDApp):
 
                     inseridos += int(qtd)
 
+                    if validade != prod.vencimento:
+                        is_val = db.query(Produto).filter(
+                            and_(Produto.codigo == prod.codigo,
+                                 Produto.vencimento == validade,
+                                 Produto.endereco == prod.endereco)
+                        ).scalar()
+
+                        if is_val:
+                            msg_erro = "VALIDADE JA EXISTE"
+                            raise ValueError
+
                 if inseridos > prod.estoque:
                     msg_erro = f"Qtd inserida {inseridos} > {prod.estoque}"
                     raise ValueError
 
                 prod.quantidade = int(qtd)
-                prod.vencimento = parse(validade, dayfirst=True)
+                prod.vencimento = parse(
+                    validade, dayfirst=True).strftime("%d/%m/%Y")
 
                 prod.verificado = True
                 db.commit()
@@ -711,11 +744,11 @@ class MainApp(MDApp):
                 texto = 'SALVO'
                 cor = get_color_from_hex('#276880')
 
-                if self.app_atual == 'applistazonanaover':
-                    # REINICIAR CAMPOS
-                    screen.ids.quantidade.text = ''
-                    screen.ids.validade.text = ''
-                    screen.add_btn_novo()
+                screen.ids.quantidade.disabled = True
+                screen.ids.emb.disabled = True
+                screen.ids.validade.disabled = True
+
+                screen.add_btn_novo()
 
         else:
             texto = msg_erro

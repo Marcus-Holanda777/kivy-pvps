@@ -244,7 +244,7 @@ MDScreenManager:
             MDTextField:
                 id: search_field
                 hint_text: 'Pesquisa por zona de separacao'
-                # on_text: root.filtra_zona(root.zona, root.tipo, self.text, True)
+                on_text: app.cria_lista_zona(app.flag_ver, True, self.text)
         MDScrollView:
             scroll_timeout : 100
             MDList:
