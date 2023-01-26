@@ -1,4 +1,5 @@
 #:import utils kivy.utils
+#:import MDSlideTransition kivymd.uix.transition.MDSlideTransition
 MDScreenManager:
     AppLogin:
     AppCriar:
@@ -316,6 +317,7 @@ MDScreenManager:
                 root.calcula_total()
         MDTextField:
             id: total
+            text: "0"
             hint_text: "Total"
             mode: "fill"
             multiline: False
@@ -410,8 +412,7 @@ MDScreenManager:
             icon_size: '45sp'
             pos_hint: {'center_y': .9}
             on_release:
-                root.manager.transition.direction = "right"
-                root.manager.current = app.app_atual
+                app.altera_screen(app.zona, app.tipo, app.pesquisa, app.search, "right")
                 
         MDLabel:
             id: id_prod

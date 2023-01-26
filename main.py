@@ -312,9 +312,6 @@ class AppdEditVer(MDScreen):
     def on_pre_leave(self, *args):
         Window.unbind(on_keyboard=self.hook_keyboard)
         self.remove_btn_edit()
-        self.app = MDApp.get_running_app()
-        self.app.altera_screen(
-            self.app.zona, self.app.tipo, self.app.pesquisa, self.app.search, "right")
 
 
 class AppCardZona(MDScreen):
@@ -436,7 +433,6 @@ class AppLogin(MDScreen):
 
         if self.deposito:
             app.atualizar_base()
-            app.nao_salvos = 0
         else:
             app.dialog = MDDialog(
                 buttons=[
@@ -552,6 +548,7 @@ class MainApp(MDApp):
 
     def sincronizar(self, log=False):
         rst = sincronizar_dados(self.deposito)
+        self.nao_salvos = 0
 
         if log:
             icon = self.root.current_screen.ids.status.icon
@@ -594,7 +591,7 @@ class MainApp(MDApp):
                 db.query(Produto)
                 .filter(Produto.verificado == False)
             ).count()
-
+            
             self.root.current_screen.manager.transition.direction = 'left'
             self.root.current = 'appcardzona'
             self.total_verificado()
