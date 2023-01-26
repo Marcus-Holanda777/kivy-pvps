@@ -1,6 +1,7 @@
 import requests
-from requests.exceptions import ConnectionError, Timeout
 import re
+from modelos import Produto, db, and_, _asdict
+from models.controle import db as dbb
 
 
 def is_data(texto: str):
@@ -25,7 +26,41 @@ def is_data(texto: str):
 def is_connect(timeout: float = 5.0) -> bool:
     url = "http://www.google.com"
     try:
-        rst = requests.get(url, timeout=timeout)
+        __ = requests.get(url, timeout=timeout)
         return True
-    except ConnectionError or Timeout:
+    except Exception:
         return False
+
+
+def sincronizar_dados(deposito: str) -> int:
+    try:
+        rst = (
+            db.query(
+                Produto
+            )
+            .filter(
+                and_(
+                    Produto.verificado == True,
+                    Produto.salvo == False
+                )
+            )
+        ).all()
+
+        if len(rst) == 0:
+            # NADA PRA ATUALIZAR
+            return 202
+
+        rst = {row.produto_id - 1: _asdict(row, True) for row in rst}
+
+        dbb.child("pvps").child(deposito).update(
+            rst
+        )
+
+        print(rst)
+
+    except:
+        # UMA EXCESAO
+        return 303
+    else:
+        # TUDO CERTO
+        return 200

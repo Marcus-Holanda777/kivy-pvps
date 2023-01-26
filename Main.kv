@@ -226,6 +226,15 @@ MDScreenManager:
             pos_hint: {"center_x": .5, "center_y": .10}
             size_hint_x: .9
 
+        MDIconButton:
+            id: status
+            icon_size: "34sp"
+            theme_icon_color: "Custom"
+            icon_color: app.theme_cls.primary_dark
+            pos_hint: {"center_x": .9, "center_y": .05}
+            on_release:
+                app.sincronizar(True)
+
 <AppLista>:
     name: 'applistazona'
     MDBoxLayout:
@@ -281,14 +290,39 @@ MDScreenManager:
     size_hint_y: None
     height: "120dp"
 
-    MDTextField:
-        id: quantidade
-        hint_text: "Quantidade"
-        multiline: False
-        input_type: 'number'
-        input_filter: 'int'
-    TextDate:
-        id: validade
+    MDGridLayout:
+        adaptive_height: True
+        spacing: "4dp"
+        cols: 2
+        MDTextField:
+            id: quantidade
+            hint_text: "Quant"
+            mode: "fill"
+            multiline: False
+            input_type: 'number'
+            input_filter: 'int'
+            on_text: 
+                root.calcula_total()
+        MDTextField:
+            id: emb
+            hint_text: "Emb"
+            text: app.embalagem
+            mode: "fill"
+            multiline: False
+            input_type: 'number'
+            input_filter: 'int'
+            on_text:
+                root.calcula_total()
+        MDTextField:
+            id: total
+            hint_text: "Total"
+            mode: "fill"
+            multiline: False
+            input_type: 'number'
+            input_filter: 'int'
+        TextDate:
+            id: validade
+            mode: "fill"
 
 
 <CustomLista>:

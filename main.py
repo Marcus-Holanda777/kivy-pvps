@@ -3,7 +3,7 @@ from kivy.core.window import Window
 from kivy.properties import StringProperty, BooleanProperty, ObjectProperty
 from kivy.metrics import dp
 from kivy.utils import get_color_from_hex
-from kivy.clock import mainthread, Clock
+from kivy.clock import mainthread
 
 from kivymd.app import MDApp
 from kivymd.uix.screenmanager import MDScreenManager
@@ -19,7 +19,7 @@ from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.textfield import MDTextField
 
-from modelos import db, Produto, func, and_, _asdict
+from modelos import db, Produto, func, and_, _asdict, or_
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
 from datetime import datetime
@@ -27,12 +27,17 @@ from threading import Thread
 from time import sleep
 import re
 
-from uteis.utils import is_connect, is_data
+from uteis.utils import is_connect, is_data, sincronizar_dados
 
 from models.controle import db as dbb
 from models.autenticar import criar_conta, autenticar_conta
+from os import environ
 
+environ["KIVY_ORIENTATION"] = "Portrait"
 # Window.size = (360, 548)  # config TELA
+
+# if platform != 'android':
+#    Config.set('graphics', 'resizable', False)
 
 
 class CustomLista(ThreeLineRightIconListItem):
@@ -53,7 +58,7 @@ class CustomLista(ThreeLineRightIconListItem):
         screen.ids.id_prod.text = f'ID: {str(prod.produto_id)}'
         screen.ids.endereco.text = prod.endereco
         screen.ids.nome.text = prod.descricao
-        screen.ids.emb.text = "1"
+        screen.ids.emb.text = str(prod.emb)
 
         if app.app_atual == 'applistazonaver':
             screen.ids.quantidade.text = str(prod.quantidade)
@@ -97,6 +102,8 @@ class BtnAdicionar(MDFillRoundFlatIconButton):
 
 
 class Content(MDBoxLayout):
+    max_length = 7
+
     def add_new_validade(self, id):
         self.app = MDApp.get_running_app()
 
@@ -116,11 +123,12 @@ class Content(MDBoxLayout):
         is_campo = all(
             [
                 self.ids.quantidade.text != "",
-                self.ids.validade.text != ""
+                self.ids.validade.text != "",
+                self.ids.emb.text != ""
             ]
         )
 
-        if is_campo and is_connect() and is_data(self.ids.validade.text):
+        if is_campo and is_data(self.ids.validade.text):
             idd = int(id.split(":")[1].strip())
             prod = (
                 db.query(Produto)
@@ -152,28 +160,39 @@ class Content(MDBoxLayout):
                     new_prod.vencimento = parse(
                         self.ids.validade.text, dayfirst=True).strftime('%d/%m/%Y')
                     new_prod.verificado = True
+                    new_prod.emb = int(self.ids.emb.text)
                     new_prod.zona = prod.zona
 
                     dados = _asdict(new_prod)
 
-                    # TODO -> Gravar os dados
-                    db.add(new_prod)
-                    db.commit()
-
                     # TODO -> Gravar no banco online
-                    dbb.child("pvps").child(self.app.deposito).child(
-                        self.app.total).update(dados)
+                    if is_connect(timeout=1.0):
+                        dbb.child("pvps").child(self.app.deposito).child(
+                            self.app.total).update(dados)
 
+                        self.snack.text = text_ok
+                        self.snack.bg_color = bg_color_ok
+                        self.snack.open()
+
+                        new_prod.salvo = True
+                    else:
+                        new_prod.salvo = False
+                        self.snack.text = "SALVO LOCALMENTE !"
+                        self.snack.bg_color = bg_color_error
+                        self.snack.open()
+
+                        self.app.nao_salvos += 1
+
+                    # TODO: Gravar os dados
                     self.app.total += 1
-
                     self.ids.quantidade.text = ""
                     self.ids.validade.text = ""
 
-                    self.snack.text = text_ok
-                    self.snack.bg_color = bg_color_ok
-                    self.snack.open()
+                    db.add(new_prod)
+                    db.commit()
+
                 else:
-                    self.snack.text = f"Qtd inserida {inseridos} > {prod.estoque}"
+                    self.snack.text = f"QTD INSERIDA {inseridos} > {prod.estoque}"
                     self.snack.bg_color = bg_color_error
                     self.snack.open()
 
@@ -186,6 +205,20 @@ class Content(MDBoxLayout):
             self.snack.text = text_error
             self.snack.bg_color = bg_color_error
             self.snack.open()
+
+    def calcula_total(self):
+
+        if self.ids.quantidade.text.strip() == "" or len(self.ids.quantidade.text) > self.max_length:
+            self.ids.total.text = "0"
+        elif self.ids.emb.text == "" or self.ids.emb.text == "0":
+            self.ids.total.text = "0"
+        else:
+            self.ids.total.text = (
+                str(
+                    int(self.ids.quantidade.text) *
+                    int(self.ids.emb.text)
+                )
+            )
 
 
 class AppdEditVer(MDScreen):
@@ -281,8 +314,19 @@ class AppdEditVer(MDScreen):
 
 
 class AppCardZona(MDScreen):
+
     def on_pre_enter(self, *args):
         Window.bind(on_keyboard=self.hook_keyboard)
+
+        self.app = MDApp.get_running_app()
+        self.ids.status.icon = (
+            'database-off' if self.app.nao_salvos > 0 else 'database'
+        )
+
+        self.ids.status.icon_color = (
+            self.app.theme_cls.primary_dark if self.app.nao_salvos > 0
+            else self.app.theme_cls.primary_light
+        )
 
     def hook_keyboard(self, window, key, *args):
         if key == 27:
@@ -292,6 +336,16 @@ class AppCardZona(MDScreen):
 
     def on_pre_leave(self, *args):
         Window.unbind(on_keyboard=self.hook_keyboard)
+        self.app = MDApp.get_running_app()
+
+        self.ids.status.icon = (
+            'database-off' if self.app.nao_salvos > 0 else 'database'
+        )
+
+        self.ids.status.icon_color = (
+            self.app.theme_cls.primary_dark if self.app.nao_salvos > 0
+            else self.app.theme_cls.primary_light
+        )
 
 
 class AppLista(MDScreen):
@@ -378,6 +432,7 @@ class AppLogin(MDScreen):
 
         if self.deposito:
             app.atualizar_base()
+            app.nao_salvos = 0
         else:
             app.dialog = MDDialog(
                 buttons=[
@@ -439,6 +494,7 @@ class MainApp(MDApp):
 
     def build(self):
         self.deposito = None
+        self.nao_salvos = 0
         self.theme_cls.theme_style = "Dark"
         self.theme_cls.primary_palette = "Purple"
         self.theme_cls.material_style = "M3"
@@ -490,12 +546,35 @@ class MainApp(MDApp):
         # self.menu.bind()
         self.menu.open()
 
+    def sincronizar(self, log=False):
+        rst = sincronizar_dados(self.deposito)
+
+        if log:
+            icon = self.root.current_screen.ids.status.icon
+
+            if rst > 300:
+                Snackbar(
+                    text="ERRO AO SINCRONIZAR",
+                    snackbar_x="10dp",
+                    snackbar_y="10dp",
+                    bg_color=get_color_from_hex('#E91E63'),
+                    size_hint_x=(
+                        Window.width - (dp(10) * 2)
+                    ) / Window.width
+                ).open()
+            else:
+                if icon != 'database':
+                    self.nao_salvos = 0
+                    self.root.current_screen.ids.status.icon = 'database'
+                    self.root.current_screen.ids.status.icon_color = self.theme_cls.primary_light
+
     def atualizar_base(self):
 
         if is_connect():
 
             # trazendo o deposito do APPLOGIN
             self.deposito = self.root.current_screen.deposito
+            self.sincronizar()
 
             db.query(Produto).delete()
             db.bulk_insert_mappings(Produto, dbb.child(
@@ -548,7 +627,12 @@ class MainApp(MDApp):
                 db.query(Produto)
                 .filter(and_(Produto.zona == zona, Produto.tipos == tipo,
                              Produto.verificado == self.flag_ver,
-                             Produto.descricao.like(f"%{pesquisa}%")))
+                             or_(
+                                 Produto.descricao.like(f"%{pesquisa}%"),
+                                 Produto.endereco.like(f"%{pesquisa}%")
+                             )
+                             )
+                        )
             ).all()
 
         else:
@@ -663,6 +747,7 @@ class MainApp(MDApp):
         id = int(screen.ids.id_prod.text.split(':')[1].strip())
         qtd = screen.ids.quantidade.text
         validade = screen.ids.validade.text
+        self.embalagem = screen.ids.emb.text
 
         msg_erro = "ERRO"
 
@@ -723,23 +808,44 @@ class MainApp(MDApp):
                     raise ValueError
 
                 prod.quantidade = int(qtd)
+                prod.emb = int(self.embalagem)
                 prod.vencimento = parse(
                     validade, dayfirst=True).strftime("%d/%m/%Y")
 
                 prod.verificado = True
-                db.commit()
 
-                dbb.child("pvps").child(self.deposito).child(id - 1).update(
-                    {
-                        "quantidade": int(qtd),
-                        "vencimento": validade,
-                        "verificado": True
-                    }
-                )
+                if is_connect(timeout=1.0):
+                    dbb.child("pvps").child(self.deposito).child(id - 1).update(
+                        {
+                            "emb": int(self.embalagem),
+                            "quantidade": int(qtd),
+                            "salvo": True,
+                            "vencimento": validade,
+                            "verificado": True
+                        }
+                    )
+
+                    prod.salvo = True
+                    db.commit()
+                else:
+                    prod.salvo = False
+                    db.commit()
+                    msg_erro = "SALVO LOCALMENTE !"
+
+                    raise ValueError
 
             except:
                 texto = msg_erro
                 cor = get_color_from_hex('#E91E63')
+
+                if msg_erro == "SALVO LOCALMENTE !":
+                    self.nao_salvos += 1
+
+                    screen.ids.quantidade.disabled = True
+                    screen.ids.emb.disabled = True
+                    screen.ids.validade.disabled = True
+                    screen.add_btn_novo()
+
             else:
                 texto = 'SALVO'
                 cor = get_color_from_hex('#276880')
@@ -747,7 +853,6 @@ class MainApp(MDApp):
                 screen.ids.quantidade.disabled = True
                 screen.ids.emb.disabled = True
                 screen.ids.validade.disabled = True
-
                 screen.add_btn_novo()
 
         else:
