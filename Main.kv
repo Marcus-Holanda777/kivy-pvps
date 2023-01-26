@@ -263,6 +263,7 @@ MDScreenManager:
 <TextDate>:
     multiline: False
     hint_text: "Validade"
+    input_type: "number"
 
 
 <BtnAdicionar>:
@@ -320,6 +321,8 @@ MDScreenManager:
             multiline: False
             input_type: 'number'
             input_filter: 'int'
+            on_text:
+                root.calcula_total()
         TextDate:
             id: validade
             mode: "fill"

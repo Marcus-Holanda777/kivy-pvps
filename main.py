@@ -1,39 +1,38 @@
-from kivy.lang import Builder
-from kivy.core.window import Window
-from kivy.properties import StringProperty, BooleanProperty, ObjectProperty
-from kivy.metrics import dp
-from kivy.utils import get_color_from_hex
-from kivy.clock import mainthread
+import os
 
-from kivymd.app import MDApp
-from kivymd.uix.screenmanager import MDScreenManager
-from kivymd.uix.screen import MDScreen
-from kivymd.uix.pickers import MDDatePicker
+os.environ["KIVY_ORIENTATION"] = "Portrait"
+
+from models.autenticar import criar_conta, autenticar_conta
+from models.controle import db as dbb
+from uteis.utils import is_connect, is_data, sincronizar_dados
+import re
+from time import sleep
+from threading import Thread
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
+from dateutil.parser import parse
+from modelos import db, Produto, func, and_, _asdict, or_
+from kivymd.uix.textfield import MDTextField
+from kivymd.uix.boxlayout import MDBoxLayout
+from kivymd.uix.menu import MDDropdownMenu
+from kivymd.uix.button import MDFlatButton, MDFillRoundFlatIconButton
+from kivymd.uix.dialog import MDDialog
+from kivymd.uix.snackbar import Snackbar
 from kivymd.uix.list import (TwoLineIconListItem, IconLeftWidget,
                              ThreeLineRightIconListItem)
+from kivymd.uix.pickers import MDDatePicker
+from kivymd.uix.screen import MDScreen
+from kivymd.uix.screenmanager import MDScreenManager
+from kivymd.app import MDApp
+from kivy.clock import mainthread
+from kivy.utils import get_color_from_hex
+from kivy.metrics import dp
+from kivy.properties import StringProperty, BooleanProperty, ObjectProperty
+from kivy.core.window import Window
+from kivy.lang import Builder
 
-from kivymd.uix.snackbar import Snackbar
-from kivymd.uix.dialog import MDDialog
-from kivymd.uix.button import MDFlatButton, MDFillRoundFlatIconButton
-from kivymd.uix.menu import MDDropdownMenu
-from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.textfield import MDTextField
 
-from modelos import db, Produto, func, and_, _asdict, or_
-from dateutil.parser import parse
-from dateutil.relativedelta import relativedelta
-from datetime import datetime
-from threading import Thread
-from time import sleep
-import re
 
-from uteis.utils import is_connect, is_data, sincronizar_dados
-
-from models.controle import db as dbb
-from models.autenticar import criar_conta, autenticar_conta
-from os import environ
-
-environ["KIVY_ORIENTATION"] = "Portrait"
 # Window.size = (360, 548)  # config TELA
 
 # if platform != 'android':
@@ -73,24 +72,28 @@ class TextDate(MDTextField):
     pat = re.compile(r'(\d{2})(\d{4})')
 
     def insert_text(self, substring, from_undo=False):
-        if not substring.isnumeric():
+        try:
+            if not substring.isnumeric():
+                substring = ""
+
+            s = self.text + substring
+
+            if len(s) == 6:
+                self.text = (
+                    parse(self.pat.sub(r"01/\1/\2", s), dayfirst=True) +
+                    relativedelta(day=31)
+                ).strftime("%d/%m/%Y")
+
+                self.do_cursor_movement("cursor_end")
+                substring = ""
+            elif len(s) > 10:
+                self.text = s[:10]
+                substring = ""
+
+            return super().insert_text(substring, from_undo)
+        except Exception:
             substring = ""
-
-        s = self.text + substring
-
-        if len(s) == 6:
-            self.text = (
-                parse(self.pat.sub(r"01/\1/\2", s), dayfirst=True) +
-                relativedelta(day=31)
-            ).strftime("%d/%m/%Y")
-
-            self.do_cursor_movement("cursor_end")
-            substring = ""
-        elif len(s) > 10:
-            self.text = s[:10]
-            substring = ""
-
-        return super().insert_text(substring, from_undo)
+            return super().insert_text(substring, from_undo)
 
 
 class BtnEditar(MDFillRoundFlatIconButton):
@@ -124,7 +127,8 @@ class Content(MDBoxLayout):
             [
                 self.ids.quantidade.text != "",
                 self.ids.validade.text != "",
-                self.ids.emb.text != ""
+                self.ids.emb.text != "",
+                self.ids.total.text != ""
             ]
         )
 
@@ -146,7 +150,7 @@ class Content(MDBoxLayout):
                 inseridos = (
                     db.query(func.sum(Produto.quantidade))
                     .filter(Produto.codigo == prod.codigo)
-                ).scalar() + int(self.ids.quantidade.text)
+                ).scalar() + int(self.ids.total.text)
 
                 if inseridos <= prod.estoque:
 
@@ -155,7 +159,7 @@ class Content(MDBoxLayout):
                     new_prod.endereco = prod.endereco
                     new_prod.descricao = prod.descricao
                     new_prod.estoque = prod.estoque
-                    new_prod.quantidade = int(self.ids.quantidade.text)
+                    new_prod.quantidade = int(self.ids.total.text)
                     new_prod.tipos = prod.tipos
                     new_prod.vencimento = parse(
                         self.ids.validade.text, dayfirst=True).strftime('%d/%m/%Y')
@@ -177,9 +181,9 @@ class Content(MDBoxLayout):
                         new_prod.salvo = True
                     else:
                         new_prod.salvo = False
-                        # self.snack.text = "SALVO LOCALMENTE !"
-                        # self.snack.bg_color = bg_color_error
-                        # self.snack.open()
+                        self.snack.text = text_ok
+                        self.snack.bg_color = bg_color_ok
+                        self.snack.open()
 
                         self.app.nao_salvos += 1
 
@@ -746,12 +750,13 @@ class MainApp(MDApp):
 
         id = int(screen.ids.id_prod.text.split(':')[1].strip())
         qtd = screen.ids.quantidade.text
+        total = screen.ids.total.text
         validade = screen.ids.validade.text
         self.embalagem = screen.ids.emb.text
 
         msg_erro = "ERRO"
 
-        if qtd != '' and validade != '':
+        if qtd != '' and validade != '' and total != '':
 
             try:
                 if not is_data(validade):
@@ -778,7 +783,7 @@ class MainApp(MDApp):
                     inseridos = (
                         db.query(func.sum(Produto.quantidade))
                         .filter(Produto.codigo == prod.codigo)
-                    ).scalar() + int(qtd)
+                    ).scalar() + int(total)
 
                     if is_val:
                         msg_erro = "VALIDADE JA EXISTE"
@@ -790,7 +795,7 @@ class MainApp(MDApp):
                         .filter(Produto.codigo == prod.codigo)
                     ).scalar() - prod.quantidade
 
-                    inseridos += int(qtd)
+                    inseridos += int(total)
 
                     if validade != prod.vencimento:
                         is_val = db.query(Produto).filter(
@@ -807,7 +812,7 @@ class MainApp(MDApp):
                     msg_erro = f"Qtd inserida {inseridos} > {prod.estoque}"
                     raise ValueError
 
-                prod.quantidade = int(qtd)
+                prod.quantidade = int(total)
                 prod.emb = int(self.embalagem)
                 prod.vencimento = parse(
                     validade, dayfirst=True).strftime("%d/%m/%Y")
@@ -818,7 +823,7 @@ class MainApp(MDApp):
                     dbb.child("pvps").child(self.deposito).child(id - 1).update(
                         {
                             "emb": int(self.embalagem),
-                            "quantidade": int(qtd),
+                            "quantidade": int(total),
                             "salvo": True,
                             "vencimento": validade,
                             "verificado": True
@@ -835,10 +840,13 @@ class MainApp(MDApp):
                     raise ValueError
 
             except:
-                texto = "SALVO"
-                cor = get_color_from_hex('#276880')
+                texto = msg_erro
+                cor = get_color_from_hex('#E91E63')
 
                 if msg_erro == "SALVO LOCALMENTE !":
+                    texto = "SALVO"
+                    cor = get_color_from_hex('#276880')
+
                     self.nao_salvos += 1
 
                     screen.ids.quantidade.disabled = True
