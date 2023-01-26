@@ -177,9 +177,9 @@ class Content(MDBoxLayout):
                         new_prod.salvo = True
                     else:
                         new_prod.salvo = False
-                        self.snack.text = "SALVO LOCALMENTE !"
-                        self.snack.bg_color = bg_color_error
-                        self.snack.open()
+                        # self.snack.text = "SALVO LOCALMENTE !"
+                        # self.snack.bg_color = bg_color_error
+                        # self.snack.open()
 
                         self.app.nao_salvos += 1
 
@@ -835,8 +835,8 @@ class MainApp(MDApp):
                     raise ValueError
 
             except:
-                texto = msg_erro
-                cor = get_color_from_hex('#E91E63')
+                texto = "SALVO"
+                cor = get_color_from_hex('#276880')
 
                 if msg_erro == "SALVO LOCALMENTE !":
                     self.nao_salvos += 1
