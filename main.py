@@ -664,6 +664,7 @@ class MainApp(MDApp):
                              )
                              )
                         )
+                        .order_by(Produto.endereco)
             ).all()
 
         else:
@@ -671,6 +672,7 @@ class MainApp(MDApp):
                 db.query(Produto)
                 .filter(and_(Produto.zona == zona, Produto.tipos == tipo,
                              Produto.verificado == self.flag_ver))
+                .order_by(Produto.endereco)
             ).all()
 
         for row in rst:
