@@ -483,14 +483,17 @@ class AppCriar(MDScreen):
         Window.unbind(on_keyboard=self.hook_keyboard)
 
 
-screen_manager = MDScreenManager()
-screen_manager.add_widget(AppLogin(name='applogin'))
-screen_manager.add_widget(AppCriar(name='appcriar'))
-screen_manager.add_widget(AppCardZona(name='appcardzona'))
-screen_manager.add_widget(AppLista(name='applistazona'))
-screen_manager.add_widget(AppListaNaoVerificados(name='applistazonanaover'))
-screen_manager.add_widget(AppListaVerificados(name='applistazonaver'))
-screen_manager.add_widget(AppdEditVer(name='appdeditver'))
+class AppGerente(MDScreenManager):
+    ...
+
+#screen_manager = MDScreenManager()
+#screen_manager.add_widget(AppLogin(name='applogin'))
+#screen_manager.add_widget(AppCriar(name='appcriar'))
+#screen_manager.add_widget(AppCardZona(name='appcardzona'))
+#screen_manager.add_widget(AppLista(name='applistazona'))
+#screen_manager.add_widget(AppListaNaoVerificados(name='applistazonanaover'))
+#screen_manager.add_widget(AppListaVerificados(name='applistazonaver'))
+#screen_manager.add_widget(AppdEditVer(name='appdeditver'))
 
 
 class MainApp(MDApp):
