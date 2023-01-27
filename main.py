@@ -19,7 +19,7 @@ from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.button import MDFlatButton, MDFillRoundFlatIconButton
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.snackbar import Snackbar
-from kivymd.uix.list import (TwoLineIconListItem, IconLeftWidget,
+from kivymd.uix.list import (TwoLineIconListItem,
                              ThreeLineRightIconListItem)
 from kivymd.uix.pickers import MDDatePicker
 from kivymd.uix.screen import MDScreen
