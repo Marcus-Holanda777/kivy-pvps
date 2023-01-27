@@ -6,6 +6,7 @@ from models.autenticar import criar_conta, autenticar_conta
 from models.controle import db as dbb
 from uteis.utils import is_connect, is_data, sincronizar_dados
 import re
+from functools import partial
 from time import sleep
 from threading import Thread
 from datetime import datetime
@@ -33,10 +34,13 @@ from kivy.lang import Builder
 
 
 
-# Window.size = (360, 548)  # config TELA
+Window.size = (360, 548)  # config TELA
 
 # if platform != 'android':
 #    Config.set('graphics', 'resizable', False)
+
+class CustomListaZona(TwoLineIconListItem):
+    icon = StringProperty()
 
 
 class CustomLista(ThreeLineRightIconListItem):
@@ -673,7 +677,7 @@ class MainApp(MDApp):
         self.flag_ver = flag_ver
 
         # limpando a lista
-        self.root.current_screen.ids.md_list.clear_widgets()
+        self.root.current_screen.ids.rv.data = []
 
         # define o icone se med ou nmed
         def icones(x): return 'pill-multiple' if x.value == 0 else 'pill-off'
@@ -701,21 +705,20 @@ class MainApp(MDApp):
                 .filter(Produto.verificado == flag_ver)
                 .group_by(Produto.zona, Produto.tipos)
             ).all()
-
+        
         for row in rst:
-            it = TwoLineIconListItem(
-                text=f"{row.zona}",
-                secondary_text=f'{row.tipos.name:>10} - {row.total:>5}',
-                on_release=lambda x: self.altera_screen(
-                    x.text, x.secondary_text)
-            )
+            zona = f"{row.zona}"
+            tipo = f'{row.tipos.name:>10} - {row.total:>5}'
 
-            it.add_widget(
-                IconLeftWidget(
-                    icon=icones(row.tipos)
-                )
-            )
-            self.root.current_screen.ids.md_list.add_widget(it)
+            dados = {
+                'viewclass': 'CustomListaZona',
+                'text': zona,
+                'icon': icones(row.tipos),
+                'secondary_text': tipo,
+                'on_release': partial(self.altera_screen, zona=zona, tipo=tipo),
+            }
+
+            self.root.current_screen.ids.rv.data.append(dados)
 
     def on_save(self, instance, value, date_range):
         screen = self.root.current_screen

@@ -255,11 +255,19 @@ MDScreenManager:
                 id: search_field
                 hint_text: 'Pesquisa por zona de separacao'
                 on_text: app.cria_lista_zona(app.flag_ver, True, self.text)
-        MDScrollView:
-            scroll_timeout : 100
-            MDList:
-                id: md_list
+
+        RecycleView:
+            id: rv
+            key_viewclass: 'viewclass'
+            key_size: 'height'
+
+            RecycleBoxLayout:
                 padding: 0
+                default_size: None, dp(80)
+                default_size_hint: 1, None
+                size_hint_y: None
+                height: self.minimum_height
+                orientation: 'vertical'
 
 <TextDate>:
     multiline: False
@@ -328,6 +336,11 @@ MDScreenManager:
         TextDate:
             id: validade
             mode: "fill"
+
+
+<CustomListaZona>:
+    IconLeftWidget:
+        icon: root.icon
 
 
 <CustomLista>:
