@@ -56,8 +56,6 @@ def sincronizar_dados(deposito: str) -> int:
             rst
         )
 
-        print(rst)
-
     except:
         # UMA EXCESAO
         return 303

@@ -331,6 +331,7 @@ class AppCardZona(MDScreen):
             else self.app.theme_cls.primary_light
         )
 
+
     def hook_keyboard(self, window, key, *args):
         if key == 27:
             MDApp.get_running_app().root.current_screen.manager.transition.direction = 'right'
@@ -357,8 +358,8 @@ class AppLista(MDScreen):
 
     def hook_keyboard(self, window, key, *args):
         if key == 27:
-            MDApp.get_running_app().root.current_screen.manager.transition.direction = 'right'
-            MDApp.get_running_app().root.current = 'appcardzona'
+            self.app = MDApp.get_running_app()
+            self.app.atualizar_base(False)
             return True
 
     def on_pre_leave(self, *args):
@@ -571,19 +572,45 @@ class MainApp(MDApp):
                     self.root.current_screen.ids.status.icon = 'database'
                     self.root.current_screen.ids.status.icon_color = self.theme_cls.primary_light
 
-    def atualizar_base(self):
+    def atualizar_base(self, renovar=True):
 
-        if is_connect():
+        if renovar:
+            if is_connect():
+                # trazendo o deposito do APPLOGIN
+                self.deposito = self.root.current_screen.deposito
+                self.sincronizar()
 
-            # trazendo o deposito do APPLOGIN
-            self.deposito = self.root.current_screen.deposito
-            self.sincronizar()
+                db.query(Produto).delete()
+                db.bulk_insert_mappings(Produto, dbb.child(
+                    "pvps").child(self.deposito).get().val())
+                db.commit()
 
-            db.query(Produto).delete()
-            db.bulk_insert_mappings(Produto, dbb.child(
-                "pvps").child(self.deposito).get().val())
-            db.commit()
+                self.verificado = (
+                    db.query(Produto)
+                    .filter(Produto.verificado == True)
+                ).count()
 
+                self.nao_verificado = (
+                    db.query(Produto)
+                    .filter(Produto.verificado == False)
+                ).count()
+                
+                self.root.current_screen.manager.transition.direction = 'left'
+                self.root.current = 'appcardzona'
+                self.total_verificado()
+                self.root.current_screen.ids.lbl_deposito.text = f"DEPOSITO - {int(self.deposito):02d}"
+                self.root.current_screen.ids.btn_naover.text = (
+                    f"NAO VERIFICADOS\n"
+                    f"{int(self.nao_verificado): 02d}"
+                )
+                self.root.current_screen.ids.btn_ver.text = (
+                    f"    VERIFICADOS\n"
+                    f"{int(self.verificado): 02d}"
+                )
+            else:
+                self.mensagem()
+
+        else:
             self.verificado = (
                 db.query(Produto)
                 .filter(Produto.verificado == True)
@@ -593,8 +620,8 @@ class MainApp(MDApp):
                 db.query(Produto)
                 .filter(Produto.verificado == False)
             ).count()
-            
-            self.root.current_screen.manager.transition.direction = 'left'
+                
+            self.root.current_screen.manager.transition.direction = 'right'
             self.root.current = 'appcardzona'
             self.total_verificado()
             self.root.current_screen.ids.lbl_deposito.text = f"DEPOSITO - {int(self.deposito):02d}"
@@ -607,8 +634,6 @@ class MainApp(MDApp):
                 f"{int(self.verificado): 02d}"
             )
 
-        else:
-            self.mensagem()
 
     def total_verificado(self):
         self.total = db.query(Produto).count()
