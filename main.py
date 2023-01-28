@@ -32,7 +32,7 @@ from kivy.properties import StringProperty, BooleanProperty, ObjectProperty
 from kivy.core.window import Window
 from kivy.lang import Builder
 
-Window.size = (360, 548)  # config TELA
+# Window.size = (360, 548)  # config TELA
 
 # if platform != 'android':
 #    Config.set('graphics', 'resizable', False)
