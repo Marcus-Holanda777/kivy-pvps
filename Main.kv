@@ -1,4 +1,5 @@
 #:import utils kivy.utils
+#:import Windows kivy.core.window.Window
 AppGerente:
     AppLogin:
     AppCriar:
@@ -190,6 +191,7 @@ AppGerente:
                 root.manager.transition.direction = "left"
                 root.manager.current = "applistazona"
                 app.cria_lista_zona()
+                app.root.get_screen('applistazona').ids.search_field.text = ''
         
         MDRectangleFlatIconButton:
             id: btn_ver
@@ -211,6 +213,7 @@ AppGerente:
                 root.manager.transition.direction = "left"
                 root.manager.current = "applistazona"
                 app.cria_lista_zona(True)
+                app.root.get_screen('applistazona').ids.search_field.text = ''
 
         MDLabel:
             id: lbl_progess
@@ -359,7 +362,7 @@ AppGerente:
                 on_release:
                     root.manager.transition.direction = "right"
                     root.manager.current = "applistazona"
-                    app.cria_lista_zona()
+                    app.cria_lista_zona(False, True, app.search_zona)
             MDIconButton:
                 icon: 'magnify'
             MDTextField:
@@ -393,7 +396,7 @@ AppGerente:
                 on_release:
                     root.manager.transition.direction = "right"
                     root.manager.current = "applistazona"
-                    app.cria_lista_zona(True)
+                    app.cria_lista_zona(True, True, app.search_zona)
             MDIconButton:
                 icon: 'magnify'
             MDTextField:
@@ -413,6 +416,10 @@ AppGerente:
                 size_hint_y: None
                 height: self.minimum_height
                 orientation: 'vertical'
+
+<ButtomHouver>:
+    icon_size: "24sp"
+
 
 <AppdEditVer>:
     name: 'appdeditver'
@@ -489,3 +496,15 @@ AppGerente:
                 pos_hint: {"center_y": .5}
                 pos: validade.width - self.width + dp(8), 0
                 on_release: app.show_data()
+        MDIconButton:
+            id: previous
+            icon_size: "24sp"
+            icon: "chevron-left"
+            on_release: root.btn_previous()
+        MDIconButton:
+            id: next
+            icon_size: "24sp"
+            icon: "chevron-right"
+            pos_hint: {'center_x': (Window.width - (dp(12) * 2)) / Window.width}
+            on_release: root.btn_next()
+            

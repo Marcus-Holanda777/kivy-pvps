@@ -32,7 +32,7 @@ from kivy.properties import StringProperty, BooleanProperty, ObjectProperty
 from kivy.core.window import Window
 from kivy.lang import Builder
 
-# Window.size = (360, 548)  # config TELA
+Window.size = (360, 548)  # config TELA
 
 # if platform != 'android':
 #    Config.set('graphics', 'resizable', False)
@@ -236,6 +236,120 @@ class AppdEditVer(MDScreen):
         self.ids.emb.disabled = False
         self.ids.validade.disabled = False
         self.add_btn_edit()
+        
+        self.data = self.app.root.get_screen(self.app.app_atual).ids.rv.data
+        self.len = len(self.data) - 1
+
+    
+    def is_chave(self, data):
+        return (
+            self.ids.id_prod.text.split(':')[1].strip() 
+            == 
+            data['text'].split(":")[1].strip()
+        )
+
+
+    def set_pos_item(self):
+        self.pos_item = next((p for p, v in enumerate(self.data) if self.is_chave(v)), 0)
+
+
+    def btn_next(self):
+        self.set_pos_item()
+
+        next_atual = int(self.data[self.pos_item]['text'].split(':')[1].strip())
+        prod_atual = db.query(Produto).filter(Produto.produto_id == next_atual).scalar()
+        
+        if self.pos_item < self.len:
+            next_item = int(self.data[self.pos_item + 1]['text'].split(':')[1].strip())
+            prod_item = db.query(Produto).filter(Produto.produto_id == next_item).scalar()
+
+            self.ids.id_prod.text = f"ID: {prod_item.produto_id}"
+            self.ids.endereco.text = prod_item.endereco
+            self.ids.nome.text = prod_item.descricao
+            self.ids.emb.text = str(prod_item.emb)
+
+            self.ids.quantidade.text = (
+                '' if prod_item.quantidade == 0 
+                else str(int(prod_item.quantidade / prod_item.emb))
+            )
+
+            self.ids.validade.text = (
+                '' if prod_item.quantidade == '' 
+                else  prod_item.vencimento
+            )
+
+            def is_verificado(prod: Produto) -> bool:
+                return (
+                     prod.verificado and 
+                     self.app.app_atual != "applistazonaver"
+                )
+
+            if is_verificado(prod_item):
+                self.ids.quantidade.disabled = True
+                self.ids.emb.disabled = True
+                self.ids.validade.disabled = True
+                
+                if not prod_atual.verificado:
+                    self.remove_btn_novo()
+                    self.add_btn_novo()
+            else:
+                self.ids.quantidade.disabled = False
+                self.ids.emb.disabled = False
+                self.ids.validade.disabled = False
+
+                if is_verificado(prod_atual):
+                    self.remove_btn_edit()
+                    self.add_btn_edit()
+
+    
+    def btn_previous(self):
+        self.set_pos_item()
+
+        next_atual = int(self.data[self.pos_item]['text'].split(':')[1].strip())
+        prod_atual = db.query(Produto).filter(Produto.produto_id == next_atual).scalar()
+        
+        if self.pos_item > 0:
+            next_item = int(self.data[self.pos_item - 1]['text'].split(':')[1].strip())
+            prod_item = db.query(Produto).filter(Produto.produto_id == next_item).scalar()
+
+            self.ids.id_prod.text = f"ID: {prod_item.produto_id}"
+            self.ids.endereco.text = prod_item.endereco
+            self.ids.nome.text = prod_item.descricao
+            self.ids.emb.text = str(prod_item.emb)
+
+            self.ids.quantidade.text = (
+                '' if prod_item.quantidade == 0 
+                else str(int(prod_item.quantidade / prod_item.emb))
+            )
+
+            self.ids.validade.text = (
+                '' if prod_item.quantidade == '' 
+                else  prod_item.vencimento
+            )
+
+            def is_verificado(prod: Produto) -> bool:
+                return (
+                     prod.verificado and 
+                     self.app.app_atual != "applistazonaver"
+                )
+
+            if is_verificado(prod_item):
+                self.ids.quantidade.disabled = True
+                self.ids.emb.disabled = True
+                self.ids.validade.disabled = True
+                
+                if not prod_atual.verificado:
+                    self.remove_btn_novo()
+                    self.add_btn_novo()
+            else:
+                self.ids.quantidade.disabled = False
+                self.ids.emb.disabled = False
+                self.ids.validade.disabled = False
+
+                if is_verificado(prod_atual):
+                    self.remove_btn_edit()
+                    self.add_btn_edit()
+
 
     def add_btn_novo(self, *args):
         self.btn = BtnAdicionar()
@@ -246,6 +360,7 @@ class AppdEditVer(MDScreen):
             self.ids.layout.remove_widget(self.btn_edit)
         except AttributeError:
             pass
+
 
     def add_btn_edit(self, *args):
         self.app = MDApp.get_running_app()
@@ -259,11 +374,20 @@ class AppdEditVer(MDScreen):
         except AttributeError:
             pass
 
+
     def remove_btn_edit(self, *args):
         try:
             self.ids.layout.remove_widget(self.btn_edit)
         except Exception:
             pass
+    
+
+    def remove_btn_novo(self, *args):
+        try:
+            self.ids.layout.remove_widget(self.btn)
+        except Exception:
+            pass
+
 
     def add_validade(self, *args):
         self.dialog = MDDialog(
@@ -376,7 +500,7 @@ class AppListaNaoVerificados(MDScreen):
         if key == 27:
             app.root.current_screen.manager.transition.direction = 'right'
             app.root.current = 'applistazona'
-            app.cria_lista_zona()
+            app.cria_lista_zona(False, True, app.search_zona)
             return True
 
     def on_pre_leave(self, *args):
@@ -393,7 +517,7 @@ class AppListaVerificados(MDScreen):
         if key == 27:
             app.root.current_screen.manager.transition.direction = 'right'
             app.root.current = 'applistazona'
-            app.cria_lista_zona(True)
+            app.cria_lista_zona(True, True, app.search_zona)
             return True
 
     def on_pre_leave(self, *args):
@@ -486,29 +610,20 @@ class AppCriar(MDScreen):
 class AppGerente(MDScreenManager):
     ...
 
-#screen_manager = MDScreenManager()
-#screen_manager.add_widget(AppLogin(name='applogin'))
-#screen_manager.add_widget(AppCriar(name='appcriar'))
-#screen_manager.add_widget(AppCardZona(name='appcardzona'))
-#screen_manager.add_widget(AppLista(name='applistazona'))
-#screen_manager.add_widget(AppListaNaoVerificados(name='applistazonanaover'))
-#screen_manager.add_widget(AppListaVerificados(name='applistazonaver'))
-#screen_manager.add_widget(AppdEditVer(name='appdeditver'))
-
 
 class MainApp(MDApp):
-
     def build(self):
         self.deposito = None
         self.nao_salvos = 0
         self.theme_cls.theme_style = "Dark"
         self.theme_cls.primary_palette = "Purple"
         self.theme_cls.material_style = "M3"
-
         return Builder.load_file("Main.kv")
+
 
     def criar_cadastro(self):
         criar_conta()
+
 
     def mensagem(self):
         self.diag = MDDialog(
@@ -525,6 +640,7 @@ class MainApp(MDApp):
         )
 
         self.diag.open()
+
 
     def sel_deposito(self):
         def set_item(text_item):
@@ -552,6 +668,7 @@ class MainApp(MDApp):
         # self.menu.bind()
         self.menu.open()
 
+
     def sincronizar(self, log=False):
         rst = sincronizar_dados(self.deposito)
         self.nao_salvos = 0
@@ -574,6 +691,7 @@ class MainApp(MDApp):
                     self.nao_salvos = 0
                     self.root.current_screen.ids.status.icon = 'database'
                     self.root.current_screen.ids.status.icon_color = self.theme_cls.primary_light
+
 
     def atualizar_base(self, renovar=True):
 
@@ -647,6 +765,7 @@ class MainApp(MDApp):
         self.root.current_screen.ids.progresstotal.value = (
             self.verificado / self.total) * 100
 
+
     def filtra_zona(self, zona, tipo, pesquisa="", search=False):
         self.pesquisa = pesquisa
         self.search = search
@@ -689,6 +808,7 @@ class MainApp(MDApp):
 
             self.root.current_screen.ids.rv.data.append(dados)
 
+
     def altera_screen(self, zona, tipo, pesquisa="", search=False, lado='left'):
         tipo = tipo.split('-')[0].strip()
 
@@ -696,13 +816,18 @@ class MainApp(MDApp):
             self.app_atual = 'applistazonaver'
         else:
             self.app_atual = 'applistazonanaover'
+        
+        if not search:
+            self.root.get_screen(self.app_atual).ids.search_field.text = ''
 
         self.root.current_screen.manager.transition.direction = lado
         self.root.current = self.app_atual
         self.filtra_zona(zona, tipo, pesquisa, search)
 
+
     def cria_lista_zona(self, flag_ver=False, search=False, search_zona=""):
         self.flag_ver = flag_ver
+        self.search_zona = search_zona
 
         # limpando a lista
         self.root.current_screen.ids.rv.data = []
@@ -747,6 +872,7 @@ class MainApp(MDApp):
             }
 
             self.root.current_screen.ids.rv.data.append(dados)
+
 
     def on_save(self, instance, value, date_range):
         screen = self.root.current_screen
@@ -876,20 +1002,22 @@ class MainApp(MDApp):
                     cor = get_color_from_hex('#276880')
 
                     self.nao_salvos += 1
-
-                    screen.ids.quantidade.disabled = True
-                    screen.ids.emb.disabled = True
-                    screen.ids.validade.disabled = True
-                    screen.add_btn_novo()
+                    
+                    if self.app_atual == 'applistazonanaover':
+                        screen.ids.quantidade.disabled = True
+                        screen.ids.emb.disabled = True
+                        screen.ids.validade.disabled = True
+                        screen.add_btn_novo()
 
             else:
                 texto = 'SALVO'
                 cor = get_color_from_hex('#276880')
-
-                screen.ids.quantidade.disabled = True
-                screen.ids.emb.disabled = True
-                screen.ids.validade.disabled = True
-                screen.add_btn_novo()
+                
+                if self.app_atual == 'applistazonanaover':
+                    screen.ids.quantidade.disabled = True
+                    screen.ids.emb.disabled = True
+                    screen.ids.validade.disabled = True
+                    screen.add_btn_novo()
 
         else:
             texto = msg_erro
