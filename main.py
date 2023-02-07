@@ -212,6 +212,7 @@ class Content(MDBoxLayout):
             self.snack.bg_color = bg_color_error
             self.snack.open()
 
+
     def calcula_total(self):
 
         if self.ids.quantidade.text.strip() == "" or len(self.ids.quantidade.text) > self.max_length:
@@ -412,6 +413,7 @@ class AppdEditVer(MDScreen):
 
         self.dialog.open()
 
+
     def calcula_total(self):
 
         if self.ids.quantidade.text.strip() == "" or len(self.ids.quantidade.text) > self.max_length:
@@ -426,14 +428,15 @@ class AppdEditVer(MDScreen):
                 )
             )
 
+
     def hook_keyboard(self, window, key, *args):
         self.app = MDApp.get_running_app()
 
         if key == 27:
             self.app.altera_screen(
                 self.app.zona, self.app.tipo, self.app.pesquisa, self.app.search, "right")
-
             return True
+
 
     def on_pre_leave(self, *args):
         Window.unbind(on_keyboard=self.hook_keyboard)
@@ -462,6 +465,7 @@ class AppCardZona(MDScreen):
             MDApp.get_running_app().root.current = 'applogin'
             return True
 
+
     def on_pre_leave(self, *args):
         Window.unbind(on_keyboard=self.hook_keyboard)
         self.app = MDApp.get_running_app()
@@ -480,11 +484,13 @@ class AppLista(MDScreen):
     def on_pre_enter(self, *args):
         Window.bind(on_keyboard=self.hook_keyboard)
 
+
     def hook_keyboard(self, window, key, *args):
         if key == 27:
             self.app = MDApp.get_running_app()
             self.app.atualizar_base(False)
             return True
+
 
     def on_pre_leave(self, *args):
         Window.unbind(on_keyboard=self.hook_keyboard)
@@ -493,6 +499,7 @@ class AppLista(MDScreen):
 class AppListaNaoVerificados(MDScreen):
     def on_pre_enter(self, *args):
         Window.bind(on_keyboard=self.hook_keyboard)
+
 
     def hook_keyboard(self, window, key, *args):
         app = MDApp.get_running_app()
@@ -503,6 +510,7 @@ class AppListaNaoVerificados(MDScreen):
             app.cria_lista_zona(False, True, app.search_zona)
             return True
 
+
     def on_pre_leave(self, *args):
         Window.unbind(on_keyboard=self.hook_keyboard)
 
@@ -510,6 +518,7 @@ class AppListaNaoVerificados(MDScreen):
 class AppListaVerificados(MDScreen):
     def on_pre_enter(self, *args):
         Window.bind(on_keyboard=self.hook_keyboard)
+
 
     def hook_keyboard(self, window, key, *args):
         app = MDApp.get_running_app()
@@ -519,6 +528,7 @@ class AppListaVerificados(MDScreen):
             app.root.current = 'applistazona'
             app.cria_lista_zona(True, True, app.search_zona)
             return True
+
 
     def on_pre_leave(self, *args):
         Window.unbind(on_keyboard=self.hook_keyboard)
@@ -532,15 +542,18 @@ class AppLogin(MDScreen):
     estado = BooleanProperty(False)
     deposito = None
 
+
     def on_leave(self, *args):
         self.txt_matricula.text = ''
         self.txt_login.text = ''
         self.txt_login.password = True
         self.icon_login.icon = 'eye-off'
 
+
     def start_second_thread(self):
         t = Thread(target=self.autenticar)
         t.start()
+
 
     def autenticar(self):
         self.update_conecta(True)
@@ -553,6 +566,7 @@ class AppLogin(MDScreen):
             sleep(2.0)
             self.update_conecta(False)
             self.alterar()
+
 
     @mainthread
     def alterar(self):
@@ -576,6 +590,7 @@ class AppLogin(MDScreen):
             app.dialog.text = self.text
             app.dialog.open()
 
+
     @mainthread
     def update_conecta(self, estado: bool):
         self.estado = estado
@@ -587,6 +602,7 @@ class AppCriar(MDScreen):
     txt_login = ObjectProperty(None)
     icon_login = ObjectProperty(None)
 
+
     def on_leave(self, *args):
         self.txt_matricula.text = ''
         self.txt_email.text = ''
@@ -594,14 +610,17 @@ class AppCriar(MDScreen):
         self.txt_login.password = True
         self.icon_login.icon = 'eye-off'
 
+
     def on_pre_enter(self, *args):
         Window.bind(on_keyboard=self.hook_keyboard)
+
 
     def hook_keyboard(self, window, key, *args):
         if key == 27:
             MDApp.get_running_app().root.current_screen.manager.transition.direction = 'right'
             MDApp.get_running_app().root.current = 'applogin'
             return True
+
 
     def on_pre_leave(self, *args):
         Window.unbind(on_keyboard=self.hook_keyboard)
@@ -880,6 +899,7 @@ class MainApp(MDApp):
         dt_fim = value + relativedelta(day=31)
         screen.ids.validade.text = dt_fim.strftime("%d/%m/%Y")
 
+
     def on_cancel(self, instance, value):
         Snackbar(
             text=f"VENC CANCELADO",
@@ -891,6 +911,7 @@ class MainApp(MDApp):
             ) / Window.width
         ).open()
 
+
     def show_data(self):
         ano_atual = datetime.now().year
 
@@ -898,6 +919,7 @@ class MainApp(MDApp):
                             min_year=ano_atual, max_year=ano_atual + 6)
         data.bind(on_save=self.on_save, on_cancel=self.on_cancel)
         data.open()
+
 
     def atualizar(self, *args):
         screen = self.root.current_screen
