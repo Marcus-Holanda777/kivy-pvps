@@ -62,7 +62,7 @@ class CustomLista(ThreeLineRightIconListItem):
         screen.ids.emb.text = str(prod.emb)
 
         if app.app_atual == 'applistazonaver':
-            screen.ids.quantidade.text = str(prod.quantidade)
+            screen.ids.quantidade.text = str(int(prod.quantidade / prod.emb)) # ALTERADO DIA 24/02/2023
             screen.ids.validade.text = parse(
                 prod.vencimento).strftime("%d/%m/%Y")
         else:
