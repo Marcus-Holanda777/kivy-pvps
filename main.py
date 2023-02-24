@@ -798,8 +798,9 @@ class MainApp(MDApp):
                              Produto.verificado == self.flag_ver,
                              or_(
                                  Produto.descricao.like(f"%{pesquisa}%"),
-                                 Produto.endereco.like(f"%{pesquisa}%")
-                             )
+                                 Produto.endereco.like(f"%{pesquisa}%"),
+                                 Produto.codigo.like(f"%{pesquisa}%")
+                              ) 
                              )
                         )
                         .order_by(Produto.endereco)
