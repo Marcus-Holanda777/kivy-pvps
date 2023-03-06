@@ -3,6 +3,9 @@ import re
 from modelos import Produto, db, and_, _asdict
 from models.controle import db as dbb
 
+def id_return(texto: str) -> int:
+    return int(texto.split(':')[1].strip())
+
 
 def is_data(texto: str):
     comp = re.compile(

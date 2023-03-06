@@ -4,7 +4,7 @@ os.environ["KIVY_ORIENTATION"] = "Portrait"
 
 from models.autenticar import criar_conta, autenticar_conta
 from models.controle import db as dbb
-from uteis.utils import is_connect, is_data, sincronizar_dados
+from uteis.utils import is_connect, is_data, sincronizar_dados, id_return
 import re
 from functools import partial
 from time import sleep
@@ -53,12 +53,12 @@ class CustomLista(ThreeLineRightIconListItem):
 
         screen = app.root.current_screen
 
-        id = int(self.text.split(':')[1].strip())
+        id =  id_return(self.text)
         prod = db.query(Produto).filter(Produto.produto_id == id).scalar()
 
-        screen.ids.id_prod.text = f'ID: {str(prod.produto_id)}'
+        screen.ids.id_prod.text = f'ID: {prod.produto_id}'
         screen.ids.endereco.text = prod.endereco
-        screen.ids.nome.text = prod.descricao
+        screen.ids.nome.text = f"{prod.codigo} - {prod.descricao}"
         screen.ids.emb.text = str(prod.emb)
 
         if app.app_atual == 'applistazonaver':
@@ -135,7 +135,7 @@ class Content(MDBoxLayout):
         )
 
         if is_campo and is_data(self.ids.validade.text):
-            idd = int(id.split(":")[1].strip())
+            idd = id_return(id)
             prod = (
                 db.query(Produto)
                 .filter(Produto.produto_id == idd)
@@ -244,9 +244,9 @@ class AppdEditVer(MDScreen):
     
     def is_chave(self, data):
         return (
-            self.ids.id_prod.text.split(':')[1].strip() 
+            id_return(self.ids.id_prod.text) 
             == 
-            data['text'].split(":")[1].strip()
+            id_return(data['text'])
         )
 
 
@@ -257,16 +257,16 @@ class AppdEditVer(MDScreen):
     def btn_next(self):
         self.set_pos_item()
 
-        next_atual = int(self.data[self.pos_item]['text'].split(':')[1].strip())
+        next_atual = id_return(self.data[self.pos_item]['text'])
         prod_atual = db.query(Produto).filter(Produto.produto_id == next_atual).scalar()
         
         if self.pos_item < self.len:
-            next_item = int(self.data[self.pos_item + 1]['text'].split(':')[1].strip())
+            next_item = id_return(self.data[self.pos_item + 1]['text'])
             prod_item = db.query(Produto).filter(Produto.produto_id == next_item).scalar()
 
             self.ids.id_prod.text = f"ID: {prod_item.produto_id}"
             self.ids.endereco.text = prod_item.endereco
-            self.ids.nome.text = prod_item.descricao
+            self.ids.nome.text = f"{prod_item.codigo} - {prod_item.descricao}"
             self.ids.emb.text = str(prod_item.emb)
 
             self.ids.quantidade.text = (
@@ -306,16 +306,16 @@ class AppdEditVer(MDScreen):
     def btn_previous(self):
         self.set_pos_item()
 
-        next_atual = int(self.data[self.pos_item]['text'].split(':')[1].strip())
+        next_atual = id_return(self.data[self.pos_item]['text'])
         prod_atual = db.query(Produto).filter(Produto.produto_id == next_atual).scalar()
         
         if self.pos_item > 0:
-            next_item = int(self.data[self.pos_item - 1]['text'].split(':')[1].strip())
+            next_item = id_return(self.data[self.pos_item - 1]['text'])
             prod_item = db.query(Produto).filter(Produto.produto_id == next_item).scalar()
 
             self.ids.id_prod.text = f"ID: {prod_item.produto_id}"
             self.ids.endereco.text = prod_item.endereco
-            self.ids.nome.text = prod_item.descricao
+            self.ids.nome.text = f"{prod_item.codigo} - {prod_item.descricao}"
             self.ids.emb.text = str(prod_item.emb)
 
             self.ids.quantidade.text = (
@@ -719,10 +719,12 @@ class MainApp(MDApp):
                 # trazendo o deposito do APPLOGIN
                 self.deposito = self.root.current_screen.deposito
                 self.sincronizar()
+                
+                # retira base None
+                dados = list(filter(lambda x: x is not None, dbb.child("pvps").child(self.deposito).get().val()))
 
                 db.query(Produto).delete()
-                db.bulk_insert_mappings(Produto, dbb.child(
-                    "pvps").child(self.deposito).get().val())
+                db.bulk_insert_mappings(Produto, dados)
                 db.commit()
 
                 self.verificado = (
@@ -817,9 +819,9 @@ class MainApp(MDApp):
         for row in rst:
             dados = {
                 'viewclass': 'CustomLista',
-                'text': f'ID: {row.produto_id:>10}',
+                'text': f'ID: {row.produto_id:<20}',
                 'secondary_text': f'ED: {row.endereco}',
-                'tertiary_text': f'DS: {row.descricao}',
+                'tertiary_text': f'DS: {row.codigo} - {row.descricao}',
                 'callback': lambda x: x,
             }
 
@@ -925,7 +927,7 @@ class MainApp(MDApp):
     def atualizar(self, *args):
         screen = self.root.current_screen
 
-        id = int(screen.ids.id_prod.text.split(':')[1].strip())
+        id =  id_return(screen.ids.id_prod.text)
         qtd = screen.ids.quantidade.text
         total = screen.ids.total.text
         validade = screen.ids.validade.text

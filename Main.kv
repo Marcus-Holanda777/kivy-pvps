@@ -274,6 +274,7 @@ AppGerente:
     multiline: False
     hint_text: "Validade"
     input_type: "number"
+    on_focus: self.text = '' if args[1] else self.text
 
 
 <BtnAdicionar>:
@@ -458,6 +459,7 @@ AppGerente:
             multiline: False
             input_type: 'number'
             input_filter: 'int'
+            on_focus: self.text = '' if args[1] else self.text
             on_text: 
                 root.calcula_total()
         MDTextField:
