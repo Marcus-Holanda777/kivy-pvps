@@ -3,6 +3,25 @@ import re
 from modelos import Produto, db, and_, _asdict
 from models.controle import db as dbb
 
+def download_pvps(dep: int):
+    key_validate = {
+        'emb', 'salvo', 'codigo', 'quantidade',
+        'verificado', 'vencimento', 'endereco', 'tipos',
+        'zona', 'descricao', 'estoque'
+    }
+
+    def is_kay_validate(val):
+        return set(val.keys()) == key_validate
+
+    get_dep = [
+        row.val()
+        for row in dbb.child('pvps').child(str(dep)).get().each()
+        if row.val() is not None and is_kay_validate(row.val())
+    ]
+
+    return get_dep
+
+
 def id_return(texto: str) -> int:
     return int(texto.split(':')[1].strip())
 

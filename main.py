@@ -4,7 +4,7 @@ os.environ["KIVY_ORIENTATION"] = "Portrait"
 
 from models.autenticar import criar_conta, autenticar_conta
 from models.controle import db as dbb
-from uteis.utils import is_connect, is_data, sincronizar_dados, id_return
+from uteis.utils import is_connect, is_data, sincronizar_dados, id_return, download_pvps
 import re
 from functools import partial
 from time import sleep
@@ -720,8 +720,11 @@ class MainApp(MDApp):
                 self.deposito = self.root.current_screen.deposito
                 self.sincronizar()
                 
-                # retira base None
-                dados = list(filter(lambda x: x is not None, dbb.child("pvps").child(self.deposito).get().val()))
+                # retira base None dia 29/03/2022
+                dados = download_pvps(self.deposito)
+                # TODO: Verificar se existe todas as chaves no dicionario !
+                # nao foi salvo o codigo do produto e mais algumas informações
+                # Falha na internet ?
 
                 db.query(Produto).delete()
                 db.bulk_insert_mappings(Produto, dados)
